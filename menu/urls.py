@@ -9,9 +9,10 @@ urlpatterns = [
     # 1. เส้นทางสำหรับหน้า Admin
     path('admin/', admin.site.urls),
     
-    # 2. เส้นทางสำหรับ API ทั้งหมดของเรา
+    # 2. เส้นทางสำหรับ API ทั้งหมดของเรา (items, orders, etc.)
     path('api/', include('menu.urls')),
 ]
 
-# 3. เพิ่มเส้นทางสำหรับเสิร์ฟไฟล์ Media (รูปภาพ)
+# 3. เพิ่มเส้นทางสำหรับเสิร์ฟไฟล์ Media (รูปภาพ) ที่อัปโหลด
+# (เราต้องการบรรทัดนี้เพียง 'ครั้งเดียว' เท่านั้น)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
