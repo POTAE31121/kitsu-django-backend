@@ -34,3 +34,11 @@ class OrderSerializer(serializers.Serializer):
     customer_phone = serializers.CharField(max_length=20)
     customer_address = serializers.CharField()
     items = OrderItemSerializer(many=True)
+
+# ... (ต่อท้ายไฟล์) ...
+class OrderStatusSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True) # ใช้ OrderItemSerializer เดิม
+
+    class Meta:
+        model = Order # type: ignore
+        fields = ['id', 'status', 'created_at', 'total_price', 'items']

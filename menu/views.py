@@ -119,3 +119,9 @@ class CreateOrderAPIView(APIView):
 
             return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    # ... (ต่อท้ายไฟล์) ...
+class OrderStatusAPIView(generics.RetrieveAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderStatusSerializer # type: ignore
+    lookup_field = 'id' # เราจะใช้ ID ของ Order ในการค้นหา
