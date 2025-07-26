@@ -33,32 +33,26 @@ def send_telegram_notification(order):
         print("WARNING: Telegram credentials not found. Skipping notification.")
         return
 
-    # "ฆ่าเชื้อ" ข้อมูลทั้งหมดก่อนนำไปใช้
-    safe_customer_name = escape_markdown_v2(order.customer_name)
-    safe_customer_phone = escape_markdown_v2(order.customer_phone)
-    safe_customer_address = escape_markdown_v2(order.customer_address)
-    safe_total_price = escape_markdown_v2(f"{order.total_price:.2f}")
-
-    message_items = "\n*Items:*\n"
+    # สร้างข้อความแบบ Plain Text ที่ไม่มี Markdown
+    message_items = "\nItems:\n"
     for item in order.items.all():
-        safe_item_name = escape_markdown_v2(item.menu_item_name)
-        message_items += f"- {safe_item_name} \\(x{item.quantity}\\)\n"
+        message_items += f"- {item.menu_item_name} (x{item.quantity})\n"
 
     message = (
-        f"🔔 *Kitsu Kitchen: New Order\\!* \n\n"
-        f"*Order ID:* `{order.id}`\n"
-        f"*Customer:* {safe_customer_name}\n"
-        f"*Phone:* {safe_customer_phone}\n"
-        f"*Address:* {safe_customer_address}\n\n"
-        f"*Total:* `{safe_total_price}` *บาท*\n"
+        f"🔔 Kitsu Kitchen: New Order!\n\n"
+        f"Order ID: {order.id}\n"
+        f"Customer: {order.customer_name}\n"
+        f"Phone: {order.customer_phone}\n"
+        f"Address: {order.customer_address}\n\n"
+        f"Total: {order.total_price:.2f} บาท\n"
         f"{message_items}"
     )
     
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    # --- ลบ parse_mode ออกทั้งหมด ---
     payload = {
         'chat_id': chat_id,
         'text': message,
-        'parse_mode': 'MarkdownV2'
     }
 
     try:
