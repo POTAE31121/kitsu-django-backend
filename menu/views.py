@@ -1,10 +1,11 @@
 # =======================================================
-#           menu/views.py (Final & Organized)
+#           menu/views.py (Final Bugfix Version 2)
 # =======================================================
 
 import os
 import requests
 from decimal import Decimal
+import re # <--- เพิ่ม import นี้เข้ามา
 
 from django.db import transaction
 from django.utils.decorators import method_decorator
@@ -17,11 +18,14 @@ from rest_framework.views import APIView
 from .models import MenuItem, Order, OrderItem
 from .serializers import MenuItemSerializer, OrderSerializer
 
+# --- ฟังก์ชันใหม่สำหรับ "ฆ่าเชื้อ" ข้อความ ---
+def escape_markdown_v2(text):
+    """Escapes characters for Telegram's MarkdownV2 parser."""
+    # ตัวอักษรที่ต้อง escape: _ * [ ] ( ) ~ ` > # + - = | { } . !
+    escape_chars = r'_*[]()~`>#+-=|{}.!'
+    return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', str(text))
 
-# =======================================================
-#               HELPER FUNCTIONS
-# =======================================================
-
+# --- ฟังก์ชันส่ง Telegram ที่อัปเกรดแล้ว ---
 def send_telegram_notification(order):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
@@ -30,27 +34,24 @@ def send_telegram_notification(order):
         print("WARNING: Telegram credentials not found. Skipping notification.")
         return
 
+    # "ฆ่าเชื้อ" ข้อมูลทั้งหมดก่อนนำไปใช้
+    safe_customer_name = escape_markdown_v2(order.customer_name)
+    safe_customer_phone = escape_markdown_v2(order.customer_phone)
+    safe_customer_address = escape_markdown_v2(order.customer_address)
+    safe_total_price = escape_markdown_v2(f"{order.total_price:.2f}")
+
     message_items = "\n*Items:*\n"
     for item in order.items.all():
-        # --- Bugfix: แก้ไขการ escape ตัวอักษรพิเศษสำหรับ MarkdownV2 ---
-        item_name = item.menu_item_name.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
-        message_items += f"- {item_name} \\(x{item.quantity}\\)\n"
-
-    # Build the full message with Markdown
-    # --- Bugfix: แก้ไขการ escape ตัวอักษรพิเศษสำหรับ MarkdownV2 ---
-    customer_name = order.customer_name.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
-    customer_phone = order.customer_phone.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
-    customer_address = order.customer_address.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
-    total_price = f"{order.total_price:.2f}".replace('.', '\\.')
-
+        safe_item_name = escape_markdown_v2(item.menu_item_name)
+        message_items += f"- {safe_item_name} \\(x{item.quantity}\\)\n"
 
     message = (
         f"🔔 *Kitsu Kitchen: New Order\\!* \n\n"
         f"*Order ID:* `{order.id}`\n"
-        f"*Customer:* {customer_name}\n"
-        f"*Phone:* {customer_phone}\n"
-        f"*Address:* {customer_address}\n\n"
-        f"*Total:* `{total_price}` *บาท*\n"
+        f"*Customer:* {safe_customer_name}\n"
+        f"*Phone:* {safe_customer_phone}\n"
+        f"*Address:* {safe_customer_address}\n\n"
+        f"*Total:* `{safe_total_price}` *บาท*\n"
         f"{message_items}"
     )
     
@@ -58,16 +59,15 @@ def send_telegram_notification(order):
     payload = {
         'chat_id': chat_id,
         'text': message,
-        'parse_mode': 'MarkdownV2' # Using V2 for better compatibility
+        'parse_mode': 'MarkdownV2'
     }
 
     try:
-        response = requests.post(url, json=payload, timeout=5) # --- Bugfix: เปลี่ยน data เป็น json ---
+        response = requests.post(url, json=payload, timeout=5)
         response.raise_for_status()
         print("Telegram Notification sent successfully!")
     except requests.exceptions.RequestException as e:
         print(f"ERROR: Could not send Telegram Notification: {e}")
-        # --- Bugfix: พิมพ์เนื้อหาของ error ที่ได้จาก Telegram ---
         if e.response:
             print(f"Telegram API Response: {e.response.text}")
 
