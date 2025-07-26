@@ -1,11 +1,11 @@
 # =======================================================
-#           menu/views.py (Final Bugfix Version 2)
+#           menu/views.py (The Final, Correct Version)
 # =======================================================
 
 import os
+import re
 import requests
 from decimal import Decimal
-import re # <--- เพิ่ม import นี้เข้ามา
 
 from django.db import transaction
 from django.utils.decorators import method_decorator
@@ -18,14 +18,13 @@ from rest_framework.views import APIView
 from .models import MenuItem, Order, OrderItem
 from .serializers import MenuItemSerializer, OrderSerializer
 
-# --- ฟังก์ชันใหม่สำหรับ "ฆ่าเชื้อ" ข้อความ ---
+# --- 1. "เครื่องฆ่าเชื้อ" ที่แข็งแกร่งที่สุด ---
 def escape_markdown_v2(text):
     """Escapes characters for Telegram's MarkdownV2 parser."""
-    # ตัวอักษรที่ต้อง escape: _ * [ ] ( ) ~ ` > # + - = | { } . !
     escape_chars = r'_*[]()~`>#+-=|{}.!'
     return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', str(text))
 
-# --- ฟังก์ชันส่ง Telegram ที่อัปเกรดแล้ว ---
+# --- 2. ฟังก์ชันส่ง Telegram ที่ใช้ "เครื่องฆ่าเชื้อ" ---
 def send_telegram_notification(order):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
@@ -71,73 +70,58 @@ def send_telegram_notification(order):
         if e.response:
             print(f"Telegram API Response: {e.response.text}")
 
-
-# =======================================================
-#                   API VIEWS
-# =======================================================
-
+# --- 3. API Views (ไม่มีการแก้ไข) ---
 class MenuItemListAPIView(generics.ListAPIView):
-    """
-    API view to retrieve a list of all available menu items.
-    """
     queryset = MenuItem.objects.filter(is_available=True)
     serializer_class = MenuItemSerializer
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateOrderAPIView(APIView):
-    """
-    API view to create a new order from cart data.
-    """
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = OrderSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if serializer.is_valid():
+            validated_data = serializer.validated_data
+            items_data = validated_data.pop('items')
 
-        validated_data = serializer.validated_data
-        items_data = validated_data.pop('items')
+            if not items_data:
+                return Response({'error': 'Order must contain at least one item.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not items_data:
-            return Response({'error': 'Order must contain at least one item.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Efficiently fetch all menu items at once
-        item_ids = [item_data['id'] for item_data in items_data]
-        menu_items_in_db = MenuItem.objects.filter(id__in=item_ids)
-        menu_items_map = {item.id: item for item in menu_items_in_db}
-
-        if len(menu_items_map) != len(item_ids):
-            missing_ids = set(item_ids) - set(menu_items_map.keys())
-            return Response({'error': f"Menu items with ids {list(missing_ids)} not found."}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create the main order record first
-        order = Order.objects.create(total_price=0, **validated_data)
-        
-        order_items_to_create = []
-        total_price = Decimal(0)
-
-        for item_data in items_data:
-            menu_item = menu_items_map.get(item_data['id'])
-            price = menu_item.price
-            quantity = item_data['quantity']
-            total_price += price * quantity
+            total_price = Decimal(0)
             
-            order_items_to_create.append(
-                OrderItem(
-                    order=order,
-                    menu_item_name=menu_item.name,
-                    quantity=quantity,
-                    price=price
+            item_ids = [item_data['id'] for item_data in items_data]
+            menu_items_in_db = MenuItem.objects.filter(id__in=item_ids)
+            menu_items_map = {item.id: item for item in menu_items_in_db}
+
+            if len(menu_items_map) != len(item_ids):
+                missing_ids = set(item_ids) - set(menu_items_map.keys())
+                return Response({'error': f"Menu items with ids {list(missing_ids)} not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            order = Order.objects.create(total_price=0, **validated_data)
+            
+            order_items_to_create = []
+            for item_data in items_data:
+                menu_item = menu_items_map.get(item_data['id'])
+                price = menu_item.price
+                quantity = item_data['quantity']
+                total_price += price * quantity
+                
+                order_items_to_create.append(
+                    OrderItem(
+                        order=order,
+                        menu_item_name=menu_item.name,
+                        quantity=quantity,
+                        price=price
+                    )
                 )
-            )
 
-        OrderItem.objects.bulk_create(order_items_to_create)
+            OrderItem.objects.bulk_create(order_items_to_create)
 
-        # Update the final total price
-        order.total_price = total_price
-        order.save()
+            order.total_price = total_price
+            order.save()
 
-        # Send notification AFTER the order is successfully saved
-        send_telegram_notification(order)
+            # ส่งการแจ้งเตือนหลังจากบันทึกสำเร็จ
+            send_telegram_notification(order)
 
-        return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+            return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
