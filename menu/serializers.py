@@ -1,7 +1,7 @@
 # menu/serializers.py
 
 from rest_framework import serializers
-from .models import MenuItem
+from .models import MenuItem, Order, OrderItem
 
 class MenuItemSerializer(serializers.ModelSerializer):
     # --- เพิ่มบรรทัดนี้เข้ามาใหม่ ---
@@ -35,10 +35,24 @@ class OrderSerializer(serializers.Serializer):
     customer_address = serializers.CharField()
     items = OrderItemSerializer(many=True)
 
-# ... (ต่อท้ายไฟล์) ...
+# --- เพิ่ม Serializer ใหม่สำหรับหน้าติดตามออเดอร์ ---
 class OrderStatusSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True) # ใช้ OrderItemSerializer เดิม
+    # เราจะใช้ SerializerMethodField เพื่อให้เราควบคุมการแสดงผลได้ดีขึ้น
+    items = serializers.SerializerMethodField()
 
     class Meta:
-        model = Order # type: ignore
+        model = Order
         fields = ['id', 'status', 'created_at', 'total_price', 'items']
+    
+    def get_items(self, obj):
+        # ดึงข้อมูล OrderItem ทั้งหมดที่เกี่ยวข้องกับ Order นี้
+        order_items = OrderItem.objects.filter(order=obj)
+        # สร้างข้อมูลที่จะส่งกลับไป
+        return [
+            {
+                'name': item.menu_item_name,
+                'quantity': item.quantity,
+                'price': f"{item.price:.2f}"
+            }
+            for item in order_items
+        ]
