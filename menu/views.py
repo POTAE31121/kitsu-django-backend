@@ -14,9 +14,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from .models import MenuItem, Order, OrderItem
-from .serializers import MenuItemSerializer, OrderSerializer
+# --- แก้ไขการ import ให้ตรงกับไฟล์ serializers ---
+from .serializers import MenuItemSerializer, OrderSerializer, OrderStatusSerializer
 
 # --- 1. "เครื่องฆ่าเชื้อ" ที่แข็งแกร่งที่สุด ---
 def escape_markdown_v2(text):
@@ -123,5 +123,5 @@ class CreateOrderAPIView(APIView):
     # ... (ต่อท้ายไฟล์) ...
 class OrderStatusAPIView(generics.RetrieveAPIView):
     queryset = Order.objects.all()
-    serializer_class = OrderStatusSerializer # type: ignore
+    serializer_class = OrderStatusSerializer
     lookup_field = 'id' # เราจะใช้ ID ของ Order ในการค้นหา
