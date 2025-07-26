@@ -23,9 +23,6 @@ from .serializers import MenuItemSerializer, OrderSerializer
 # =======================================================
 
 def send_telegram_notification(order):
-    """
-    Sends a formatted notification to a Telegram chat when a new order is created.
-    """
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
 
@@ -33,19 +30,27 @@ def send_telegram_notification(order):
         print("WARNING: Telegram credentials not found. Skipping notification.")
         return
 
-    # Build the item list string
     message_items = "\n*Items:*\n"
     for item in order.items.all():
-        message_items += f"- {item.menu_item_name} (x{item.quantity})\n"
+        # --- Bugfix: แก้ไขการ escape ตัวอักษรพิเศษสำหรับ MarkdownV2 ---
+        item_name = item.menu_item_name.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
+        message_items += f"- {item_name} \\(x{item.quantity}\\)\n"
 
     # Build the full message with Markdown
+    # --- Bugfix: แก้ไขการ escape ตัวอักษรพิเศษสำหรับ MarkdownV2 ---
+    customer_name = order.customer_name.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
+    customer_phone = order.customer_phone.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
+    customer_address = order.customer_address.replace('-', '\\-').replace('.', '\\.').replace('!', '\\!').replace('(', '\\(').replace(')', '\\)')
+    total_price = f"{order.total_price:.2f}".replace('.', '\\.')
+
+
     message = (
-        f"🔔 *Kitsu Kitchen: New Order!*\n\n"
+        f"🔔 *Kitsu Kitchen: New Order\\!* \n\n"
         f"*Order ID:* `{order.id}`\n"
-        f"*Customer:* {order.customer_name}\n"
-        f"*Phone:* {order.customer_phone}\n"
-        f"*Address:* {order.customer_address}\n\n"
-        f"*Total:* `{order.total_price:.2f}` *บาท*\n"
+        f"*Customer:* {customer_name}\n"
+        f"*Phone:* {customer_phone}\n"
+        f"*Address:* {customer_address}\n\n"
+        f"*Total:* `{total_price}` *บาท*\n"
         f"{message_items}"
     )
     
@@ -57,11 +62,14 @@ def send_telegram_notification(order):
     }
 
     try:
-        response = requests.post(url, data=payload, timeout=5) # Add timeout
+        response = requests.post(url, json=payload, timeout=5) # --- Bugfix: เปลี่ยน data เป็น json ---
         response.raise_for_status()
         print("Telegram Notification sent successfully!")
     except requests.exceptions.RequestException as e:
         print(f"ERROR: Could not send Telegram Notification: {e}")
+        # --- Bugfix: พิมพ์เนื้อหาของ error ที่ได้จาก Telegram ---
+        if e.response:
+            print(f"Telegram API Response: {e.response.text}")
 
 
 # =======================================================
