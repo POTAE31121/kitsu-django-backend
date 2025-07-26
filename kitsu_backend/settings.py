@@ -1,19 +1,22 @@
-import os
-import dj_database_url #type: ignore
+# kitsu_backend/settings.py (Final, Cleaned & Organized Version)
 
+import os
+import dj_database_url
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (for local development)
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# ==============================================================================
+# CORE SETTINGS
+# ==============================================================================
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u&(8uqnot58g!k3s$-nt!p1n_w@%j7z^h0^d6id_*1+o4n)9+9'
-
-# SECURITY WARNING: don't run with debug turned on in production!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key-for-local-dev')
 DEBUG = 'RENDER' not in os.environ
 
 ALLOWED_HOSTS = []
@@ -22,7 +25,10 @@ RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# Application definition
+
+# ==============================================================================
+# APPLICATION DEFINITION
+# ==============================================================================
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -31,18 +37,22 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'cloudinary_storage', # <--- เพิ่ม
-    'cloudinary',       # <--- เพิ่ม
-    'whitenoise.runserver_nostatic',  # ใช้สำหรับการจัดการ static files
-    'menu',
-    'rest_framework',
+
+    # Third-party apps
+    'cloudinary_storage',
+    'cloudinary',
     'corsheaders',
+    'rest_framework',
+    'whitenoise.runserver_nostatic',
+
+    # Local apps
+    'menu',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ใช้สำหรับการจัดการ static files
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # Should be placed high up
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -52,6 +62,25 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'kitsu_backend.urls'
+WSGI_APPLICATION = 'kitsu_backend.wsgi.application'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# ==============================================================================
+# DATABASE
+# ==============================================================================
+
+DATABASES = {
+    'default': dj_database_url.config(
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600
+    )
+}
+
+
+# ==============================================================================
+# TEMPLATES & INTERNATIONALIZATION
+# ==============================================================================
 
 TEMPLATES = [
     {
@@ -68,79 +97,60 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'kitsu_backend.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': dj_database_url.config(
-        # ถ้าหา DATABASE_URL ไม่เจอ (แสดงว่าทำงานบนเครื่องเรา) ให้ใช้ sqlite แทน
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600
-    )
-}
-
-
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
-
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# ==============================================================================
+# STATIC & MEDIA FILES
+# ==============================================================================
 
-STATIC_URL = 'static/'
-# บอก Django ว่าเมื่อรัน collectstatic ให้ไปรวมไฟล์ไว้ที่ไหน
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# เปิดใช้งาน Whitenoise Compression and Caching
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
-
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# ใส่ไว้ที่ท้ายไฟล์ settings.py
-
-# อนุญาตให้เว็บจาก GitHub Pages และ Localhost (สำหรับทดสอบ) เข้าถึงได้
-CORS_ALLOWED_ORIGINS = [
-    "https://potae31121.github.io",
-    "https://kitsu-backend.onrender.com",  # URL ของเว็บที่รันบน Render# URL ของเว็บหน้าร้านคุณ
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    # เพิ่ม "http://127.0.0.1:5500" ถ้าคุณใช้ VS Code Live Server
-    "http://127.0.0.1:5500", 
-]
-
-# --- เพิ่ม 2 บรรทัดนี้เข้าไป ---
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# For Cloudinary, DEFAULT_FILE_STORAGE is set automatically if CLOUDINARY_URL is present
+
+
+# ==============================================================================
+# SECURITY & CORS
+# ==============================================================================
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "https://potae31121.github.io",
+    "https://kitsu-django-backend.onrender.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:5500",
+]
+
+# (Optional but good practice) To allow POST, PUT, etc.
+# CORS_ALLOW_METHODS = [
+#     "DELETE",
+#     "GET",
+#     "OPTIONS",
+#     "PATCH",
+#     "POST",
+#     "PUT",
+# ]
+
+# (Optional but good practice) To allow headers like Content-Type
+# CORS_ALLOW_HEADERS = [
+#     "accept",
+#     "authorization",
+#     "content-type",
+#     "origin",
+#     "x-csrftoken",
+#     "x-requested-with",
+# ]
