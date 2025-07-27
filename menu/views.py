@@ -14,7 +14,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count
 
 from rest_framework import generics, status
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -81,10 +81,12 @@ class MenuItemListAPIView(generics.ListAPIView):
     """
     queryset = MenuItem.objects.filter(is_available=True)
     serializer_class = MenuItemSerializer
+    permission_classes = [AllowAny] # No authentication required for menu items
 
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateOrderAPIView(APIView):
+    permission_classes = [AllowAny]  # No authentication required for creating orders
     """
     API view to create a new order from cart data.
     """
@@ -149,6 +151,7 @@ class OrderStatusAPIView(generics.RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderStatusSerializer
     lookup_field = 'id'
+    permission_classes = [AllowAny]  # No authentication required for checking order status
 
 
 # =======================================================
