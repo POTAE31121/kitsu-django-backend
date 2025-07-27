@@ -170,3 +170,27 @@ class AdminUpdateOrderStatusView(APIView):
             return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK )
         except Order.DoesNotExist:
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+# --- เพิ่ม 2 คลาสนี้เข้าไปใหม่ ---
+class AdminOrderListView(generics.ListAPIView):
+    queryset = Order.objects.all().order_by('-created_at')
+    serializer_class = AdminOrderSerializer
+    permission_classes = [IsAdminUser]
+
+class AdminUpdateOrderStatusView(APIView):
+    permission_classes = [IsAdminUser]
+    
+    def patch(self, request, order_id, *args, **kwargs):
+        try:
+            order = Order.objects.get(id=order_id)
+            new_status = request.data.get('status')
+            
+            valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+            if new_status not in valid_statuses:
+                return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+            order.status = new_status
+            order.save()
+            return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
