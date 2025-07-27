@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken', # For token authentication
     'whitenoise.runserver_nostatic',
 
     # Local apps

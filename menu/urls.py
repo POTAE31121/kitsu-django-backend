@@ -1,7 +1,8 @@
 # menu/urls.py (The Final, Correct Version)
 
 from django.urls import path
-from .views import MenuItemListAPIView, CreateOrderAPIView, OrderStatusAPIView
+from .views import MenuItemListAPIView, CreateOrderAPIView, OrderStatusAPIView, AdminOrderListView, AdminUpdateOrderStatusView
+from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
     # 1. เบอร์ต่อสำหรับ "ดึงรายการเมนู"
@@ -12,4 +13,13 @@ urlpatterns = [
 
     # 3. เบอร์ต่อสำหรับ "ติดตามสถานะออเดอร์"
     path('orders/<int:id>/', OrderStatusAPIView.as_view(), name='order-status'),
+
+    # 4. เบอร์ต่อสำหรับ "รับโทเค็นการเข้าถึง"
+    path('auth/token/', obtain_auth_token, name='api-token-auth'),\
+    
+    # 5. เบอร์ต่อสำหรับ "รายการออเดอร์สำหรับผู้ดูแลระบบ"
+    path('admin/orders/', AdminOrderListView.as_view(), name='admin-order-list'),
+
+    # 6. เบอร์ต่อสำหรับ "อัปเดตสถานะออเดอร์สำหรับผู้ดูแลระบบ"
+    path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view(), name='admin-update-order-status'),
 ]
