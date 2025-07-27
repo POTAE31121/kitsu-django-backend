@@ -155,3 +155,21 @@ CORS_ALLOWED_ORIGINS = [
 #     "x-csrftoken",
 #     "x-requested-with",
 # ]
+
+# ==============================================================================
+# DJANGO REST FRAMEWORK SETTINGS
+# ==============================================================================
+
+REST_FRAMEWORK = {
+    # กฎข้อที่ 1: "วิธีการยืนยันตัวตน"
+    # บอกว่า API ทั้งหมดของเราจะใช้ "Token Authentication" เป็นวิธีหลัก
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+
+    # กฎข้อที่ 2: "สิทธิ์การเข้าถึงพื้นฐาน"
+    # บอกว่า โดยปกติแล้ว ทุก API จะต้องใช้ "บัตรผ่าน" (ต้องล็อกอิน) ถึงจะเข้าได้
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
