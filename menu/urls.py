@@ -1,7 +1,14 @@
 # menu/urls.py (The Final, Correct Version)
 
 from django.urls import path
-from .views import MenuItemListAPIView, CreateOrderAPIView, OrderStatusAPIView, AdminOrderListView, AdminUpdateOrderStatusView
+from .views import (
+    MenuItemListAPIView, 
+    CreateOrderAPIView, 
+    OrderStatusAPIView, 
+    AdminOrderListView, 
+    AdminUpdateOrderStatusView,
+    AdminDashboardStatsView,
+)
 from rest_framework.authtoken.views import obtain_auth_token
 
 urlpatterns = [
@@ -22,4 +29,7 @@ urlpatterns = [
 
     # 6. เบอร์ต่อสำหรับ "อัปเดตสถานะออเดอร์สำหรับผู้ดูแลระบบ"
     path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view(), name='admin-update-order-status'),
+
+    # 7. เบอร์ต่อสำหรับ "สถิติแดชบอร์ดสำหรับผู้ดูแลระบบ"
+    path('admin/stats/', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
 ]

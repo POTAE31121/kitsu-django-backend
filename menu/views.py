@@ -10,6 +10,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.db.models import Sum, Count
 
 from rest_framework import generics, status
 from rest_framework.permissions import IsAdminUser
@@ -184,3 +186,27 @@ class AdminUpdateOrderStatusView(APIView):
             return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK)
         except Order.DoesNotExist:
             return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+# --- API Views ใหม่สำหรับข้อมูลสรุปออเดอร์ ---
+class AdminDashboardStatsView(APIView):
+    """
+    API view for admins to get dashboard statistics.
+    """
+    permission_classes = [IsAdminUser]
+
+    today = timezone.now().date()
+    today_orders = Order.objects.filter(created_at__date=today)
+
+    today_revenue = today_orders.aggregate(Sum('total_price'))['total_price__sum'] or Decimal(0)
+    total_orders = Order.objects.count()
+    today_order_count = today_orders.count()
+
+    data = {
+        'today_revenue': f"{today_revenue:.2f} บาท",
+        'today_order_count': today_order_count,
+        'total_orders': total_orders,
+        'today_order_count': today_order_count,
+        'popular_items': OrderItem.objects.filter(order__created_at__date=today)
+            .values('menu_item_name')
+            .annotate(total_quantity=Sum('quantity'))
+            .order_by('-total_quantity')[:5],
+    }
