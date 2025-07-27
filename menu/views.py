@@ -189,7 +189,7 @@ class AdminUpdateOrderStatusView(APIView):
         
 
 # --- ⭐️ API View ใหม่สำหรับข้อมูลสรุปบน Dashboard (เวอร์ชันที่ถูกต้อง) ⭐️ ---
-class AdminDashboardStatsAPIView(APIView):
+class AdminDashboardStatsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
