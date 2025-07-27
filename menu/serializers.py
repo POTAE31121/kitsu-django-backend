@@ -56,3 +56,29 @@ class OrderStatusSerializer(serializers.ModelSerializer):
             }
             for item in order_items
         ]
+# --- ต่อท้ายคลาส OrderStatusSerializer ---
+
+# --- Serialirzer สำหรับแสดง OrderItem ในหน้า Dashboard ---
+class OrderItemDashboardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'menu_item_name', 'quantity', 'price']
+
+# --- Serializer สำหรับแสดง Order ในหน้า Dashboard ---
+class OrderDashboardSerializer(serializers.ModelSerializer):
+    items = OrderItemDashboardSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'customer_name', 'customer_phone', 'customer_address', 'status', 'created_at', 'total_price', 'items']
+
+class AdminOrderItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderItem
+        fields = ['menu_item_name', 'quantity', 'price']
+
+class AdminOrderSerializer(serializers.ModelSerializer):
+    items = AdminOrderItemSerializer(many=True, read_only=True)
+    class Meta:
+        model = Order
+        fields = '__all__'
