@@ -170,9 +170,9 @@ class AdminUpdateOrderStatusView(APIView):
     """
     permission_classes = [IsAdminUser]
 
-    def patch(self, request, order_id, *args, **kwargs):
+    def patch(self, request, id, *args, **kwargs):
         try:
-            order = Order.objects.get(id=order_id)
+            order = Order.objects.get(id=id)
             new_status = request.data.get('status')
             
             valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
