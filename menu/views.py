@@ -183,5 +183,4 @@ class AdminUpdateOrderStatusView(APIView):
             order.save()
             return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK)
         except Order.DoesNotExist:
-            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)```
-            
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
