@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import MenuItem, Order, OrderItem
 # --- แก้ไขการ import ให้ตรงกับไฟล์ serializers ---
-from .serializers import MenuItemSerializer, OrderSerializer, OrderStatusSerializer
+from .serializers import MenuItemSerializer, OrderSerializer, OrderStatusSerializer, AdminOrderSerializer
 
 # --- 1. "เครื่องฆ่าเชื้อ" ที่แข็งแกร่งที่สุด ---
 def escape_markdown_v2(text):
@@ -125,3 +125,48 @@ class OrderStatusAPIView(generics.RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderStatusSerializer
     lookup_field = 'id' # เราจะใช้ ID ของ Order ในการค้นหา
+
+# --- 4. Serializer สำหรับ Dashboard ---
+from rest_framework.permissions import IsAdminUser
+
+# --- API View สำหรับดึง Order ทั้งหมด (สำหรับ Admin) ---
+class AdminOrderList(generics.ListAPIView):
+    queryset = Order.objects.all().order_by('-created_at') #เรียงจากใหม่ล่าสุดไปเก่าสุด
+    serializer_class = AdminOrderSerializer
+    permission_classes = [IsAdminUser]  # ให้เฉพาะ Admin เท่านั้นที่เข้าถึงได้
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            order = Order.objects.get(id=id)
+            new_status = request.data.get('status')
+
+            # --- ตรวจสอบสถานะที่ส่งมาถูกต้อง ---
+            valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+            if new_status not in valid_statuses:
+                return Response({'error': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            order.status = new_status
+            order.save()
+            return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK )
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+# --- API View สำหรับ Update Status Order (สำหรับ Admin) ---
+class AdminUpdateOrderStatusView(APIView):
+    permission_class = [IsAdminUser] # ให้เฉพาะ Admin เท่านั้นที่เข้าถึงได้
+
+    def patch(self, request, *args, **kwargs):
+        try:
+            order = Order.objects.get(id=id)
+            new_status = request.data.get('status')
+
+            # --- ตรวจสอบสถานะที่ส่งมาถูกต้อง ---
+            valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
+            if new_status not in valid_statuses:
+                return Response({'error': 'Invalid status.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            order.status = new_status
+            order.save()
+            return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK )
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
