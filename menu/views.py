@@ -17,6 +17,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 
 from .models import MenuItem, Order, OrderItem
 from .serializers import (
@@ -24,6 +25,7 @@ from .serializers import (
     OrderSerializer,
     OrderStatusSerializer,
     AdminOrderSerializer,
+    OrderSlipUploadSerializer,
 )
 
 # =======================================================
@@ -213,3 +215,10 @@ class AdminDashboardStatsView(APIView):
             .annotate(total_quantity=Sum('quantity'))
             .order_by('-total_quantity')[:5],
     }
+
+class OrderSlipUploadAPIView(generics.UpdateAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderSlipUploadSerializer
+    lookup_field = 'id'
+    permission_classes = [AllowAny]  # Allow any user to upload payment slips
+    parser_classes = [MultiPartParser, FormParser]

@@ -13,9 +13,10 @@ class MenuItem(models.Model):
         return self.name
 
 class Order(models.Model):
-    # --- เพิ่มฟิลด์ STATUS_CHOICES เข้ามา ---
+    # --- UPGRADE STATUS_CHOICES ---
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
+        ('AWAITING_PAYMENT', 'Awaiting Payment'),
         ('PREPARING', 'Preparing'),
         ('DELIVERING', 'Out for Delivery'),
         ('COMPLETED', 'Completed'),
@@ -27,7 +28,10 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='AWAITING_PAYMENT')
+
+    # --- เพิ่มฟิลด์สำหรับเก็บสลิป ---
+    payment_slip = CloudinaryField('payment_slip', blank=True, null=True)
 
     def __str__(self):
         return f"Order {self.id} by {self.customer_name}"

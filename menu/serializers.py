@@ -82,3 +82,8 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
+
+class OrderSlipUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ['payment_slip']

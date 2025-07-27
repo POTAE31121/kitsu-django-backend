@@ -8,6 +8,7 @@ from .views import (
     AdminOrderListView, 
     AdminUpdateOrderStatusView,
     AdminDashboardStatsView,
+    OrderSlipUploadAPIView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -32,4 +33,7 @@ urlpatterns = [
 
     # 7. เบอร์ต่อสำหรับ "สถิติแดชบอร์ดสำหรับผู้ดูแลระบบ"
     path('admin/stats/', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
+
+    # 8. เบอร์ต่อสำหรับ "อัปโหลดสลิปการชำระเงิน"
+    path('orders/<int:id>/upload-slip/', OrderSlipUploadAPIView.as_view(), name='order-upload-slip'),
 ]
