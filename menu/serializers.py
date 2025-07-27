@@ -79,9 +79,17 @@ class AdminOrderItemSerializer(serializers.ModelSerializer):
 
 class AdminOrderSerializer(serializers.ModelSerializer):
     items = AdminOrderItemSerializer(many=True, read_only=True)
+    
+    payment_slip_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Order
-        fields = '__all__'
+        fields = ['id', 'customer_name', 'customer_phone', 'customer_address', 'status', 'created_at', 'total_price', 'items', 'payment_slip_url']
+
+    def get_payment_slip_url(self, obj):
+        if obj.payment_slip and hasattr(obj.payment_slip, 'url'):
+            return obj.payment_slip.url
+        return None
 
 class OrderSlipUploadSerializer(serializers.ModelSerializer):
     class Meta:
