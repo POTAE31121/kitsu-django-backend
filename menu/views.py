@@ -32,9 +32,6 @@ from .serializers import (
 # =======================================================
 
 def send_telegram_notification(order):
-    """
-    Sends a formatted plain text notification to a Telegram chat.
-    """
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
     chat_id = os.environ.get('TELEGRAM_CHAT_ID')
 
@@ -187,93 +184,31 @@ class AdminDashboardStatsView(APIView):
 
     def get(self, request, *args, **kwargs):
         try:
-            # Fix importing timezone correctly
-            from django.utils import timezone
-            
-            today = timezone.localdate(timezone.now()).date()
+            # ใช้วิธีที่ถูกต้องและปลอดภัยที่สุดในการจัดการ Timezone
+            today = timezone.localtime(timezone.now()).date()
 
-            # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
+            # 1. หาออเดอร์ทั้งหมดของ "วันนี้" (ตามเวลาประเทศไทย)
             all_todays_orders = Order.objects.filter(created_at__date=today)
-
-            # 2. หา 'เฉพาะ' ออเดอร์ที่เสร็จสมบูรณ์แล้วของวันนี้ (สำหรับคำนวณยอดขาย)
+            # 2. หา 'เฉพาะ' ออเดอร์ที่เสร็จสมบูรณ์แล้วของวันนี้
             completed_todays_orders = all_todays_orders.filter(status='COMPLETED')
 
-            # คำนวณยอดขายจากออเดอร์ที่เสร็จสมบูรณ์แล้วเท่านั้น
-            todays_revenue = completed_todays_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
-
-            # นับจำนวนออเดอร์ทั้งหมดในระบบ
+            # คำนวณยอดขาย
+            todays_revenue = completed_todays_orders.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+            # นับจำนวนออเดอร์ทั้งหมด
             total_orders_count = Order.objects.count()
-
             # นับจำนวนออเดอร์ของวันนี้
             todays_orders_count = all_todays_orders.count()
 
-            # เตรียมข้อมูลที่จะส่งกลับไป
             data = {
                 'todays_revenue': f"{todays_revenue:.2f}",
                 'todays_orders_count': todays_orders_count,
                 'total_orders_count': total_orders_count,
             }
             return Response(data, status=status.HTTP_200_OK)
-    
         except Exception as e:
-            print(f"ERROR in AdminDashboardStatsAPIView: {e}")
+            # เพิ่มการดักจับ Error เพื่อให้เราเห็นว่าเกิดอะไรขึ้น
+            print(f"ERROR in AdminDashboardStatsView: {e}")
             return Response(
-            {'error': 'An error occurred while fetching dashboard stats.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-    def get(self, request, *args, **kwargs):
-        today = timezone.now().date()
-
-         # --- ⭐️ การอัปเกรดสมองอยู่ตรงนี้ ⭐️ ---
-        # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
-        all_todays_orders = Order.objects.filter(created_at__date=today)
-
-        # 2. หาออเดอร์ที่มีสถานะ 'completed' ของวันนี้ (สำหรับนับรายได้)
-        completed_todays_orders = all_todays_orders.filter(status='completed')  
-
-        # 3. คำนวณรายได้รวมของออเดอร์ที่เสร็จสมบูรณ์
-        total_revenue = completed_todays_orders.aggregate(Sum('total_price'))['total_price__sum'] or Decimal(0)
-
-        # 4. นับจำนวนออเดอร์ทั้งหมดของวันนี้
-        total_orders_today = all_todays_orders.count()
-
-        # 5. นับจำนวนออเดอร์ที่เสร็จสมบูรณ์ของวันนี้
-        completed_orders_today = completed_todays_orders.count()
-
-        # 6. หา 5 เมนูที่ขายดีที่สุดของวันนี้
-        popular_items = (
-            OrderItem.objects.filter(order__created_at__date=today)
-            .values('menu_item_name')
-            .annotate(total_quantity=Sum('quantity'))
-            .order_by('-total_quantity')[:5]
-        )
-
-        # 7. สร้างข้อมูลสรุป
-        summary = {
-            'total_revenue': f"{total_revenue:.2f} บาท",
-            'total_orders_today': total_orders_today,
-            'completed_orders_today': completed_orders_today,
-            'popular_items': [
-                {'name': item['menu_item_name'], 'quantity': item['total_quantity']}
-                for item in popular_items
-            ]
-        }
-        
-    today = timezone.now().date()
-    today_orders = Order.objects.filter(created_at__date=today)
-
-    today_revenue = today_orders.aggregate(Sum('total_price'))['total_price__sum'] or Decimal(0)
-    total_orders = Order.objects.count()
-    today_order_count = today_orders.count()
-
-    data = {
-        'today_revenue': f"{today_revenue:.2f} บาท",
-        'today_order_count': today_order_count,
-        'total_orders': total_orders,
-        'today_order_count': today_order_count,
-        'popular_items': OrderItem.objects.filter(order__created_at__date=today)
-            .values('menu_item_name')
-            .annotate(total_quantity=Sum('quantity'))
-            .order_by('-total_quantity')[:5],
-    }
+                {"error": "An internal error occurred while calculating stats."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
