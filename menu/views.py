@@ -219,8 +219,6 @@ class AdminDashboardStatsView(APIView):
         }
         return Response(data, status=status.HTTP_200_OK)
 
-    permission_classes = [IsAdminUser]
-
     def get(self, request, *args, **kwargs):
         today = timezone.now().date()
 
