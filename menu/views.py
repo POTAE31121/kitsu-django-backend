@@ -189,29 +189,37 @@ class AdminDashboardStatsView(APIView):
         now_utc = timezone.now()
         now_bkk = now_utc.astimezone(timezone.get_current_timezone())
         today = now_bkk.date()
+        try:
 
-        # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
-        all_todays_orders = Order.objects.filter(created_at__date=today)
+            # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
+            all_todays_orders = Order.objects.filter(created_at__date=today)
 
-        # 2. หา 'เฉพาะ' ออเดอร์ที่เสร็จสมบูรณ์แล้วของวันนี้ (สำหรับคำนวณยอดขาย)
-        completed_todays_orders = all_todays_orders.filter(status='COMPLETED')
+            # 2. หา 'เฉพาะ' ออเดอร์ที่เสร็จสมบูรณ์แล้วของวันนี้ (สำหรับคำนวณยอดขาย)
+            completed_todays_orders = all_todays_orders.filter(status='COMPLETED')
 
-        # คำนวณยอดขายจากออเดอร์ที่เสร็จสมบูรณ์แล้วเท่านั้น
-        todays_revenue = completed_todays_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
+            # คำนวณยอดขายจากออเดอร์ที่เสร็จสมบูรณ์แล้วเท่านั้น
+            todays_revenue = completed_todays_orders.aggregate(Sum('total_price'))['total_price__sum'] or 0
 
-        # นับจำนวนออเดอร์ทั้งหมดในระบบ
-        total_orders_count = Order.objects.count()
+            # นับจำนวนออเดอร์ทั้งหมดในระบบ
+            total_orders_count = Order.objects.count()
 
-        # นับจำนวนออเดอร์ของวันนี้
-        todays_orders_count = all_todays_orders.count()
+            # นับจำนวนออเดอร์ของวันนี้
+            todays_orders_count = all_todays_orders.count()
 
-        # เตรียมข้อมูลที่จะส่งกลับไป
-        data = {
-            'todays_revenue': f"{todays_revenue:.2f}",
-            'todays_orders_count': todays_orders_count,
-            'total_orders_count': total_orders_count,
-        }
-        return Response(data, status=status.HTTP_200_OK)
+            # เตรียมข้อมูลที่จะส่งกลับไป
+            data = {
+                'todays_revenue': f"{todays_revenue:.2f}",
+                'todays_orders_count': todays_orders_count,
+                'total_orders_count': total_orders_count,
+            }
+            return Response(data, status=status.HTTP_200_OK)
+    
+        except Exception as e:
+            print(f"ERROR in AdminDashboardStatsAPIView: {e}")
+            return Response(
+            {'error': 'An error occurred while fetching dashboard stats.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     def get(self, request, *args, **kwargs):
         today = timezone.now().date()
