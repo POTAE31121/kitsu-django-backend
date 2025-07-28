@@ -186,10 +186,11 @@ class AdminDashboardStatsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        now_utc = timezone.now()
-        now_bkk = now_utc.astimezone(timezone.get_current_timezone())
-        today = now_bkk.date()
         try:
+            # Fix importing timezone correctly
+            from django.utils import timezone
+            
+            today = timezone.localdate(timezone.now()).date()
 
             # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
             all_todays_orders = Order.objects.filter(created_at__date=today)
