@@ -77,9 +77,6 @@ def send_telegram_notification(order):
 # =======================================================
 
 class MenuItemListAPIView(generics.ListAPIView):
-    """
-    API view to retrieve a list of all available menu items.
-    """
     queryset = MenuItem.objects.filter(is_available=True)
     serializer_class = MenuItemSerializer
     permission_classes = [AllowAny] # No authentication required for menu items
@@ -88,9 +85,6 @@ class MenuItemListAPIView(generics.ListAPIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class CreateOrderAPIView(APIView):
     permission_classes = [AllowAny]  # No authentication required for creating orders
-    """
-    API view to create a new order from cart data.
-    """
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = OrderSerializer(data=request.data)
@@ -171,7 +165,6 @@ class AdminOrderListView(generics.ListAPIView):
 
 class AdminUpdateOrderStatusView(APIView):
     permission_classes = [IsAdminUser]
-
     def patch(self, request, id, *args, **kwargs):
         try:
             order = Order.objects.get(id=id)
