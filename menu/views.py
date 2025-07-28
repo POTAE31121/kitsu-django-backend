@@ -186,8 +186,9 @@ class AdminDashboardStatsView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        today_in_bkk = timezone.now().astimezone(timezone.get_fixed_timezone(420))  # UTC+7 for Bangkok
-        today = today_in_bkk.date()
+        now_utc = timezone.now()
+        now_bkk = now_utc.astimezone(timezone.get_current_timezone())
+        today = now_bkk.date()
 
         # 1. หาออเดอร์ทั้งหมดของวันนี้ (สำหรับนับจำนวน)
         all_todays_orders = Order.objects.filter(created_at__date=today)
