@@ -4,6 +4,7 @@
 
 import os
 import requests
+import json
 from decimal import Decimal
 
 from django.db import transaction
@@ -25,6 +26,7 @@ from .serializers import (
     OrderStatusSerializer,
     AdminOrderSerializer,
     OrderSlipUploadSerializer,
+    FinalOrderSubmissionSerializer,
 )
 
 # =======================================================
@@ -179,7 +181,7 @@ class AdminUpdateOrderStatusView(APIView):
         
 
 # --- ⭐️ API View ใหม่สำหรับข้อมูลสรุปบน Dashboard (เวอร์ชันที่ถูกต้อง) ⭐️ ---
-class AdminDashboardStatsView(APIView):
+class AdminDashboardStatsAPIView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request, *args, **kwargs):
@@ -212,3 +214,35 @@ class AdminDashboardStatsView(APIView):
                 {"error": "An internal error occurred while calculating stats."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+# =======================================================
+class FinalOrderSubmissionAPIView(APIView):
+    permission_classes = [AllowAny]
+    parser_classes = [MultiPartParser, FormParser] # สำคัญมาก!
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        serializer = FinalOrderSubmissionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        validated_data = serializer.validated_data
+        
+        # แปลง JSON string กลับเป็น Python list
+        try:
+            items_data = json.loads(validated_data['items'])
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid items format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # ... (โค้ดคำนวณราคาและสร้าง Order/OrderItem เหมือนใน CreateOrderAPIView) ...
+        # ... แต่นำ payment_slip มาใช้ด้วย ...
+        order = Order.objects.create(
+            customer_name=validated_data['customer_name'],
+            # ... etc ...
+            payment_slip=validated_data['payment_slip']
+        )
+        # ... สร้าง OrderItem ...
+        # ... อัปเดต total_price ...
+        
+        send_telegram_notification(order)
+        return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)

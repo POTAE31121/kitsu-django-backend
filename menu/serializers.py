@@ -95,3 +95,10 @@ class OrderSlipUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['payment_slip']
+
+class FinalOrderSubmissionSerializer(serializers.Serializer):
+    customer_name = serializers.CharField(max_length=100)
+    customer_phone = serializers.CharField(max_length=20)
+    customer_address = serializers.CharField()
+    items = serializers.CharField() # เราจะรับ items เป็น JSON string
+    payment_slip = serializers.ImageField()

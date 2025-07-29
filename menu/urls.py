@@ -7,8 +7,9 @@ from .views import (
     OrderStatusAPIView, 
     AdminOrderListView, 
     AdminUpdateOrderStatusView,
-    AdminDashboardStatsView,
+    AdminDashboardStatsAPIView,
     OrderSlipUploadAPIView,
+    FinalOrderSubmissionAPIView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -32,8 +33,11 @@ urlpatterns = [
     path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view(), name='admin-update-order-status'),
 
     # 7. เบอร์ต่อสำหรับ "สถิติแดชบอร์ดสำหรับผู้ดูแลระบบ"
-    path('admin/stats/', AdminDashboardStatsView.as_view(), name='admin-dashboard-stats'),
+    path('admin/stats/', AdminDashboardStatsAPIView.as_view(), name='admin-dashboard-stats'),
 
     # 8. เบอร์ต่อสำหรับ "อัปโหลดสลิปการชำระเงิน"
     path('orders/<int:id>/upload-slip/', OrderSlipUploadAPIView.as_view(), name='order-upload-slip'),
+
+    # 9. เบอร์ต่อสำหรับ "ส่งออเดอร์สุดท้าย"
+    path('orders/<int:id>/finalize/', FinalOrderSubmissionAPIView.as_view(), name='final-order-submission'),
 ]
