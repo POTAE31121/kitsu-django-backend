@@ -3,7 +3,7 @@
 from django.urls import path
 from .views import (
     MenuItemListAPIView, 
-    CreateOrderAPIView, 
+    #CreateOrderAPIView, 
     OrderStatusAPIView, 
     AdminOrderListView, 
     AdminUpdateOrderStatusView,
@@ -18,7 +18,7 @@ urlpatterns = [
     path('items/', MenuItemListAPIView.as_view(), name='menu-item-list'),
 
     # 2. เบอร์ต่อสำหรับ "สร้างออเดอร์"
-    path('orders/create/', CreateOrderAPIView.as_view(), name='create-order'),
+    # path('orders/create/', CreateOrderAPIView.as_view(), name='create-order'),
 
     # 3. เบอร์ต่อสำหรับ "ติดตามสถานะออเดอร์"
     path('orders/<int:id>/', OrderStatusAPIView.as_view(), name='order-status'),

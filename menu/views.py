@@ -218,7 +218,7 @@ class AdminDashboardStatsAPIView(APIView):
 # =======================================================
 class FinalOrderSubmissionAPIView(APIView):
     permission_classes = [AllowAny]
-    parser_classes = [MultiPartParser, FormParser] # สำคัญมาก!
+    parser_classes = [MultiPartParser, FormParser]
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
@@ -228,21 +228,41 @@ class FinalOrderSubmissionAPIView(APIView):
 
         validated_data = serializer.validated_data
         
-        # แปลง JSON string กลับเป็น Python list
         try:
             items_data = json.loads(validated_data['items'])
         except json.JSONDecodeError:
             return Response({'error': 'Invalid items format.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ... (โค้ดคำนวณราคาและสร้าง Order/OrderItem เหมือนใน CreateOrderAPIView) ...
-        # ... แต่นำ payment_slip มาใช้ด้วย ...
+        # --- ที่เหลือคือ Logic การสร้าง Order ที่สมบูรณ์ ---
+        total_price = Decimal(0)
+        item_ids = [item['id'] for item in items_data]
+        menu_items_in_db = MenuItem.objects.filter(id__in=item_ids)
+        menu_items_map = {item.id: item for item in menu_items_in_db}
+
+        if len(menu_items_map) != len(item_ids):
+            return Response({'error': 'Some menu items were not found.'}, status=status.HTTP_400_BAD_REQUEST)
+
         order = Order.objects.create(
             customer_name=validated_data['customer_name'],
-            # ... etc ...
-            payment_slip=validated_data['payment_slip']
+            customer_phone=validated_data['customer_phone'],
+            customer_address=validated_data['customer_address'],
+            payment_slip=validated_data['payment_slip'],
+            total_price=0 # Start with 0
         )
-        # ... สร้าง OrderItem ...
-        # ... อัปเดต total_price ...
+        
+        order_items_to_create = []
+        for item_data in items_data:
+            menu_item = menu_items_map.get(item_data['id'])
+            price = menu_item.price
+            quantity = item_data['quantity']
+            total_price += price * quantity
+            order_items_to_create.append(
+                OrderItem(order=order, menu_item_name=menu_item.name, quantity=quantity, price=price)
+            )
+
+        OrderItem.objects.bulk_create(order_items_to_create)
+        order.total_price = total_price
+        order.save()
         
         send_telegram_notification(order)
         return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
