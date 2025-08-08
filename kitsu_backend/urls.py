@@ -5,8 +5,12 @@ from django.conf import settings
 from django.conf.urls.static import static
 # --- เพิ่ม import นี้เข้ามา ---
 from rest_framework.authtoken.views import obtain_auth_token
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    # เส้นทางสำหรับแผงผู้ดูแลระบบ
+    path('', RedirectView.as_view(url='https://potae31121.github.io/kitsu-cloud-kitchen/', permanent=False), name='index'),  # Redirect to the homepage
+
     path('admin/', admin.site.urls),
     
     # --- เพิ่มเส้นทางสำหรับ Login เข้ามาใหม่ตรงนี้ ---
