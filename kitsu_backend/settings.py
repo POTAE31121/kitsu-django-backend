@@ -75,10 +75,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'postgres',  # Database name จาก Supabase
-        'USER': 'postgres',  # User จาก Supabase
+        'USER': 'postgres.jbrtkcyyoejhdzerfifx',  # User จาก Supabase
         'PASSWORD': '101018Tae31121',  # << รหัสผ่านที่คุณตั้งไว้
         'HOST': 'aws-1-us-east-2.pooler.supabase.com', # Host จาก Supabase
-        'PORT': '5432',  # Port จาก Supabase
+        'PORT': '6543',  # Port จาก Supabase
     }
 }
 
