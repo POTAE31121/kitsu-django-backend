@@ -77,7 +77,7 @@ DATABASES = {
         'NAME': 'postgres',  # Database name จาก Supabase
         'USER': 'postgres',  # User จาก Supabase
         'PASSWORD': '101018Tae31121',  # << รหัสผ่านที่คุณตั้งไว้
-        'HOST': 'db.jbrtkcyyoejhdzerfifx.supabase.co', # Host จาก Supabase
+        'HOST': 'aws-1-us-east-2.pooler.supabase.com', # Host จาก Supabase
         'PORT': '5432',  # Port จาก Supabase
     }
 }
