@@ -72,16 +72,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ==============================================================================
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',  # Database name จาก Supabase
-        'USER': 'postgres.jbrtkcyyoejhdzerfifx',  # User จาก Supabase
-        'PASSWORD': '101018Tae31121',  # << รหัสผ่านที่คุณตั้งไว้
-        'HOST': 'aws-1-us-east-2.pooler.supabase.com', # Host จาก Supabase
-        'PORT': '6543',  # Port จาก Supabase
-    }
+    'default': dj_database_url.config(
+        # ใช้ค่า default เป็น SQLite สำหรับการพัฒนาในเครื่อง
+        # ถ้าหา DATABASE_URL ไม่เจอ จะใช้ค่านี้แทน
+        default='sqlite:///db.sqlite3',
+        # บอกให้การเชื่อมต่อคงอยู่ได้นานขึ้น
+        conn_max_age=600
+    )
 }
-
 
 # ==============================================================================
 # TEMPLATES & INTERNATIONALIZATION
