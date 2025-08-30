@@ -10,7 +10,7 @@ from django.views.generic import RedirectView
 
 urlpatterns = [
     # เส้นทางสำหรับแผงผู้ดูแลระบบ
-    path('', RedirectView.as_view(url='https://potae31121.github.io/kitsu-cloud-kitchen/', permanent=False), name='index'),  # Redirect to the homepage
+    #path('', RedirectView.as_view(url='https://potae31121.github.io/kitsu-cloud-kitchen/', permanent=False), name='index'),  # Redirect to the homepage
 
     path('admin/', admin.site.urls),
     
@@ -21,7 +21,7 @@ urlpatterns = [
     path('api/', include('menu.urls')),
 
     # เส้นทางสำหรับ proxy
-    re_path(r'^proxy/(?P<path>.*)$', proxy_view),
+    re_path(r'^(?P<path>.*)$', proxy_view),
 ]
 # เพิ่มเส้นทางสำหรับ Media files
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
