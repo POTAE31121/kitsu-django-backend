@@ -298,13 +298,9 @@ class CreatePaymentIntentAPIView(APIView):
             f"&amount={amount_decimal}"
         )
 
-        return Response(
-            {
-                'payment_intent_id': payment_intent_id,
-                'simulator_url': simulator_url
-            },
-            status=201
-        )
+        return Response({
+            "simulator_url": "https://kitsu-frontend.onrender.com/payment-simulator.html"
+        }, status=status.HTTP_200_OK)
 
 class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
