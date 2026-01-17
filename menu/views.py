@@ -299,7 +299,7 @@ class CreatePaymentIntentAPIView(APIView):
         )
 
         return Response({
-            "simulator_url": "https://kitsu-frontend.onrender.com/payment-simulator.html"
+            "simulator_url": "https://kitsu-backend.onrender.com/payment-simulator.html"
         }, status=status.HTTP_200_OK)
 
 class PaymentWebhookAPIView(APIView):
