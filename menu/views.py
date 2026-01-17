@@ -274,53 +274,37 @@ class FinalOrderSubmissionAPIView(APIView):
 # =======================================================
 class CreatePaymentIntentAPIView(APIView):
     permission_classes = [AllowAny]
+
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         amount = request.data.get('amount')
         if not amount:
-            return Response({'error': 'Amount is required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Amount is required.'}, status=400)
 
         try:
             amount_decimal = Decimal(amount)
             if amount_decimal <= 0:
-                raise ValueError("Amount must be positive.")
-        except (ValueError, InvalidOperation):
-            return Response({'error': 'Invalid amount provided.'}, status=status.HTTP_400_BAD_REQUEST)
+                raise ValueError
+        except:
+            return Response({'error': 'Invalid amount.'}, status=400)
 
-        stripe_api_key = os.environ.get('STRIPE_API_KEY')
-        if not stripe_api_key:
-            return Response({'error': 'Stripe API key not configured.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # ❌ Stripe ยังไม่ใช้ → mock intent
+        payment_intent_id = f"pi_{uuid.uuid4().hex}"
 
-        headers = {
-            'Authorization': f'Bearer {stripe_api_key}',
-            'Content-Type': 'application/x-www-form-urlencoded',
-        }
-        data = {
-            'amount': int(amount_decimal * 100),  # Convert to cents
-            'currency': 'thb',
-            'payment_method_types[]': 'card',
-            'metadata[order_id]': str(uuid.uuid4()),  # Unique order identifier
-        }
+        simulator_url = (
+            f"https://potae31121.github.io/kitsu-cloud-kitchen/"
+            f"payment-simulator.html"
+            f"?intent_id={payment_intent_id}"
+            f"&amount={amount_decimal}"
+        )
 
-        try:
-            response = requests.post('https://api.stripe.com/v1/payment_intents', headers=headers, data=data, timeout=5)
-            response.raise_for_status()
-            payment_intent = response.json()
-            return Response({
-                'client_secret': payment_intent['client_secret'],
-                'payment_intent_id': payment_intent['id'],
-            }, status=status.HTTP_200_OK)
-        except requests.exceptions.RequestException as e:
-            print(f"ERROR: Could not create Stripe Payment Intent: {e}")
-            if e.response:
-                print(f"Stripe API Response: {e.response.text}")
-            return Response({'error': 'Failed to create payment intent.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            payment_intent_id = f"pi_{uuid.uuid4().hex}"  # Mock payment intent ID
-            order.payment_intent_id = payment_intent_id
-            order.save()
-
-            simulator_url = f"https://potae31121.github.io/kitsu-cloud-kitchen/payment-simulator.html?intent_id={payment_intent_id}&order_id={order.id}&amount={order.total_price}"
-        return Response({'simulator_url': simulator_url}, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                'payment_intent_id': payment_intent_id,
+                'simulator_url': simulator_url
+            },
+            status=201
+        )
 
 class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
