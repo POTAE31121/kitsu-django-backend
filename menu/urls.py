@@ -10,6 +10,8 @@ from .views import (
     AdminDashboardStatsAPIView,
     OrderSlipUploadAPIView,
     FinalOrderSubmissionAPIView,
+    PaymentWebhookAPIView,
+    CreatePaymentIntentAPIView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -42,4 +44,10 @@ urlpatterns = [
 
     # 9. เบอร์ต่อสำหรับ "ส่งออเดอร์สุดท้าย"
     path('orders/submit-final/', FinalOrderSubmissionAPIView.as_view(), name='final-order-submission'),
+
+    #10 Webhook สำหรับการชำระเงิน
+    path('webhook/payment/', PaymentWebhookAPIView.as_view(), name='payment-webhook'),
+
+    #11 สร้าง Payment Intent
+    path('payment/create-intent/', CreatePaymentIntentAPIView.as_view(), name='create-payment-intent'),
 ]

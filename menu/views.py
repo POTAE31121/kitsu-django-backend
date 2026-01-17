@@ -5,7 +5,8 @@
 import os
 import requests
 import json
-from decimal import Decimal
+import uuid
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.utils import timezone
@@ -267,3 +268,80 @@ class FinalOrderSubmissionAPIView(APIView):
         
         send_telegram_notification(order)
         return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+    
+# =======================================================
+#               CREATE PAYMENT INTENT
+# =======================================================
+class CreatePaymentIntentAPIView(APIView):
+    permission_classes = [AllowAny]
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        amount = request.data.get('amount')
+        if not amount:
+            return Response({'error': 'Amount is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            amount_decimal = Decimal(amount)
+            if amount_decimal <= 0:
+                raise ValueError("Amount must be positive.")
+        except (ValueError, InvalidOperation):
+            return Response({'error': 'Invalid amount provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        stripe_api_key = os.environ.get('STRIPE_API_KEY')
+        if not stripe_api_key:
+            return Response({'error': 'Stripe API key not configured.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        headers = {
+            'Authorization': f'Bearer {stripe_api_key}',
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+        data = {
+            'amount': int(amount_decimal * 100),  # Convert to cents
+            'currency': 'thb',
+            'payment_method_types[]': 'card',
+            'metadata[order_id]': str(uuid.uuid4()),  # Unique order identifier
+        }
+
+        try:
+            response = requests.post('https://api.stripe.com/v1/payment_intents', headers=headers, data=data, timeout=5)
+            response.raise_for_status()
+            payment_intent = response.json()
+            return Response({
+                'client_secret': payment_intent['client_secret'],
+                'payment_intent_id': payment_intent['id'],
+            }, status=status.HTTP_200_OK)
+        except requests.exceptions.RequestException as e:
+            print(f"ERROR: Could not create Stripe Payment Intent: {e}")
+            if e.response:
+                print(f"Stripe API Response: {e.response.text}")
+            return Response({'error': 'Failed to create payment intent.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            payment_intent_id = f"pi_{uuid.uuid4().hex}"  # Mock payment intent ID
+            order.payment_intent_id = payment_intent_id
+            order.save()
+
+            simulator_url = f"https://potae31121.github.io/kitsu-cloud-kitchen/payment-simulator.html?intent_id={payment_intent_id}&order_id={order.id}&amount={order.total_price}"
+        return Response({'simulator_url': simulator_url}, status=status.HTTP_201_CREATED)
+
+class PaymentWebhookAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        payload = request.data
+        # Verify the webhook signature (if using Stripe, for example)
+        # Handle the event (e.g., payment succeeded, payment failed)
+        intent_id = request.data.get('intent_id')
+        event_type = request.data.get('event_type')
+
+        try:
+            order = Order.objects.get(payment_intent_id=intent_id)
+            if event_type == 'payment.success':
+                order.status = 'PREPARING'
+                order.save()
+                send_telegram_notification(order)
+                return Response({'status': 'success'}, status=status.HTTP_200_OK)
+            else:
+                order.status = 'CANCELLED' # ถ้าจ่ายล้มเหลว
+                order.save()
+                return Response({'status': 'failed'}, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
