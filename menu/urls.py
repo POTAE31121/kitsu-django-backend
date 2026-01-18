@@ -1,53 +1,44 @@
-# menu/urls.py (The Final, Correct Version)
-
+# menu/urls.py
 from django.urls import path
 from .views import (
-    MenuItemListAPIView, 
-    #CreateOrderAPIView, 
-    OrderStatusAPIView, 
-    AdminOrderListView, 
+    MenuItemListAPIView,
+    OrderStatusAPIView,
+    AdminOrderListView,
     AdminUpdateOrderStatusView,
     AdminDashboardStatsAPIView,
     OrderSlipUploadAPIView,
     FinalOrderSubmissionAPIView,
-    PaymentWebhookAPIView,
     CreatePaymentIntentAPIView,
+    PaymentStatusAPIView,
+)
+from .webhooks import (
+    SimulatorWebhookAPIView,
+    StripeWebhookAPIView,
+    OmiseWebhookAPIView,
 )
 from rest_framework.authtoken.views import obtain_auth_token
 
 
 urlpatterns = [
-   
-    # 1. เบอร์ต่อสำหรับ "ดึงรายการเมนู"
-    path('items/', MenuItemListAPIView.as_view(), name='menu-item-list'),
 
-    # 2. เบอร์ต่อสำหรับ "สร้างออเดอร์"
-    # path('orders/create/', CreateOrderAPIView.as_view(), name='create-order'),
+    # Public
+    path('items/', MenuItemListAPIView.as_view()),
+    path('orders/<int:id>/', OrderStatusAPIView.as_view()),
+    path('orders/<int:id>/upload-slip/', OrderSlipUploadAPIView.as_view()),
+    path('orders/submit-final/', FinalOrderSubmissionAPIView.as_view()),
 
-    # 3. เบอร์ต่อสำหรับ "ติดตามสถานะออเดอร์"
-    path('orders/<int:id>/', OrderStatusAPIView.as_view(), name='order-status'),
+    # Payment
+    path('payment/create-intent/', CreatePaymentIntentAPIView.as_view()),
+    path('payment/status/<str:payment_intent_id>/', PaymentStatusAPIView.as_view()),
 
-    # 4. เบอร์ต่อสำหรับ "รับโทเค็นการเข้าถึง"
-    path('auth/token/', obtain_auth_token, name='api-token-auth'),\
-    
-    # 5. เบอร์ต่อสำหรับ "รายการออเดอร์สำหรับผู้ดูแลระบบ"
-    path('admin/orders/', AdminOrderListView.as_view(), name='admin-order-list'),
+    # Webhooks (แยก provider)
+    path('webhook/simulator/', SimulatorWebhookAPIView.as_view()),
+    path('webhook/stripe/', StripeWebhookAPIView.as_view()),
+    path('webhook/omise/', OmiseWebhookAPIView.as_view()),
 
-    # 6. เบอร์ต่อสำหรับ "อัปเดตสถานะออเดอร์สำหรับผู้ดูแลระบบ"
-    path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view(), name='admin-update-order-status'),
-
-    # 7. เบอร์ต่อสำหรับ "สถิติแดชบอร์ดสำหรับผู้ดูแลระบบ"
-    path('admin/stats/', AdminDashboardStatsAPIView.as_view(), name='admin-dashboard-stats'),
-
-    # 8. เบอร์ต่อสำหรับ "อัปโหลดสลิปการชำระเงิน"
-    path('orders/<int:id>/upload-slip/', OrderSlipUploadAPIView.as_view(), name='order-upload-slip'),
-
-    # 9. เบอร์ต่อสำหรับ "ส่งออเดอร์สุดท้าย"
-    path('orders/submit-final/', FinalOrderSubmissionAPIView.as_view(), name='final-order-submission'),
-
-    #10 Webhook สำหรับการชำระเงิน
-    path('webhook/payment/', PaymentWebhookAPIView.as_view(), name='payment-webhook'),
-
-    #11 สร้าง Payment Intent
-    path('payment/create-intent/', CreatePaymentIntentAPIView.as_view(), name='create-payment-intent'),
+    # Admin
+    path('auth/token/', obtain_auth_token),
+    path('admin/orders/', AdminOrderListView.as_view()),
+    path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view()),
+    path('admin/stats/', AdminDashboardStatsAPIView.as_view()),
 ]
