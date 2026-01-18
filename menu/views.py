@@ -331,6 +331,7 @@ class CreatePaymentIntentAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        order_id = request.data.get('order_id')
         amount = request.data.get('amount')
 
         if not amount:
@@ -351,13 +352,13 @@ class CreatePaymentIntentAPIView(APIView):
 
         # mock payment intent
         now = timezone.now().localtime()
-        intent_id = now.strftime("pi_%Y%m%d%H%M%S") + f"-{Order.id}"
+        intent_id = f"KT{now:%Y%m%d%H%M%S}-{order_id}"
 
         simulator_url = (
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
             f"payment-simulator.html"
             f"?intent_id={intent_id}"
-            f"&amount={amount/ 100:.2f}"
+            f"&amount={amount: .2f}"
         )
 
         return Response({
