@@ -361,3 +361,25 @@ class PaymentWebhookAPIView(APIView):
             order.payment_status = 'FAILED'
             order.save()
             return Response({'message': 'Payment failed'}, status=200)
+
+# =======================================================
+#           PAYMENT STATUS (POLLING)
+# =======================================================
+
+class PaymentStatusAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, payment_intent_id):
+        try:
+            order = Order.objects.get(payment_intent_id=payment_intent_id)
+        except Order.DoesNotExist:
+            return Response(
+                {'error': 'Order not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response({
+            'order_id': order.id,
+            'payment_status': order.payment_status,
+            'order_status': order.status,
+        }, status=status.HTTP_200_OK)
