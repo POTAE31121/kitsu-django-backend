@@ -237,7 +237,7 @@ class FinalOrderSubmissionAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
-        # 1. Parse items
+        # 1. Parse items (FIX: validate structure ชัดเจน)
         try:
             items_data = json.loads(data['items'])
             if not isinstance(items_data, list) or not items_data:
@@ -248,13 +248,18 @@ class FinalOrderSubmissionAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 2. Fetch & lock menu items
-        item_ids = [item.get('id') for item in items_data]
-        menu_items = (
-            MenuItem.objects
-            .select_for_update()
-            .filter(id__in=item_ids)
-        )
+        # 2. Validate item ids (FIX: กัน id หาย)
+        item_ids = []
+        for item in items_data:
+            if 'id' not in item or 'quantity' not in item:
+                return Response(
+                    {'error': 'Each item must contain id and quantity'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            item_ids.append(item['id'])
+
+        # 3. Fetch menu items
+        menu_items = MenuItem.objects.filter(id__in=item_ids)
         menu_map = {item.id: item for item in menu_items}
 
         if len(menu_map) != len(item_ids):
@@ -263,18 +268,18 @@ class FinalOrderSubmissionAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 3. Create order (explicit status)
+        # 4. Create order (FIX: payment_slip optional)
         order = Order.objects.create(
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
             customer_address=data['customer_address'],
-            payment_slip=data['payment_slip'],
+            payment_slip=data.get('payment_slip'),  # ← FIX สำคัญ
             status='AWAITING_PAYMENT',
             payment_status='UNPAID',
             total_price=Decimal('0.00')
         )
 
-        # 4. Create order items + calculate total
+        # 5. Create order items + calculate total
         total_price = Decimal('0.00')
         order_items = []
 
@@ -285,12 +290,12 @@ class FinalOrderSubmissionAPIView(APIView):
                 if quantity <= 0:
                     raise ValueError
             except (KeyError, ValueError, TypeError):
-                raise transaction.TransactionManagementError(
-                    "Invalid item structure"
+                return Response(
+                    {'error': 'Invalid item structure'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
-            line_total = menu_item.price * quantity
-            total_price += line_total
+            total_price += menu_item.price * quantity
 
             order_items.append(
                 OrderItem(
@@ -303,11 +308,12 @@ class FinalOrderSubmissionAPIView(APIView):
 
         OrderItem.objects.bulk_create(order_items)
 
-        # 5. Finalize order
+        # 6. Finalize order
         order.total_price = total_price
         order.save(update_fields=['total_price'])
 
-        send_telegram_notification(order)
+        # 7. Notify AFTER commit (FIX: ไม่ rollback เพราะ Telegram)
+        transaction.on_commit(lambda: send_telegram_notification(order))
 
         return Response(
             {

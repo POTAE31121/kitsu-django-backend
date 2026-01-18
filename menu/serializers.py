@@ -101,4 +101,7 @@ class FinalOrderSubmissionSerializer(serializers.Serializer):
     customer_phone = serializers.CharField(max_length=20)
     customer_address = serializers.CharField()
     items = serializers.CharField() # เราจะรับ items เป็น JSON string
-    payment_slip = serializers.ImageField()
+    payment_slip = serializers.ImageField(
+        required=False,
+        allow_null=True,
+    )
