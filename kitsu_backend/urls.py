@@ -21,7 +21,7 @@ urlpatterns = [
     path('api/', include('menu.urls')),
 
     # เส้นทางสำหรับ proxy
-    re_path(r'^(?P<path>.*)$', proxy_view),
+    re_path(r'^(?!api/).*$)', proxy_view),
 ]
 # เพิ่มเส้นทางสำหรับ Media files
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
