@@ -306,6 +306,8 @@ class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
+        print("WEBHOOK DATA:", request.data)  # <-- เพิ่มบรรทัดนี้
+        
         intent_id = request.data.get('intent_id')
         payment_status = request.data.get('status')
         amount = request.data.get('amount')
