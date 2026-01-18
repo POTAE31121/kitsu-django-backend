@@ -334,23 +334,23 @@ class CreatePaymentIntentAPIView(APIView):
         order_id = request.data.get('order_id')
         amount = request.data.get('amount')
 
-        if not order_id or not amount:
+        if order_id is None or amount is None:
             return Response(
                 {'error': 'order_id and amount are required'},
                 status=400
             )
 
         try:
+            order_id = int(order_id)
             amount = float(amount)
             if amount <= 0:
                 raise ValueError
-        except ValueError:
+        except (ValueError, TypeError):
             return Response(
-                {'error': 'invalid amount'},
+                {'error': 'invalid order_id or amount'},
                 status=400
             )
 
-        # 🔒 ดึง order
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
@@ -359,7 +359,7 @@ class CreatePaymentIntentAPIView(APIView):
                 status=404
             )
 
-        # 🔑 สร้าง intent_id
+        # ✅ สร้าง intent_id
         now = timezone.now().localtime()
         intent_id = f"KT_{now:%Y%m%d%H%M%S}_{order.id}"
 
