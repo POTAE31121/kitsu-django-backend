@@ -334,42 +334,31 @@ class CreatePaymentIntentAPIView(APIView):
         order_id = request.data.get('order_id')
         amount = request.data.get('amount')
 
-        if order_id is None or amount is None:
-            return Response(
-                {'error': 'order_id and amount are required'},
-                status=400
-            )
-
-        try:
-            order_id = int(order_id)
-            amount = float(amount)
-            if amount <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            return Response(
-                {'error': 'invalid order_id or amount'},
-                status=400
-            )
+        if not order_id or not amount:
+            return Response({'error': 'order_id and amount are required'}, status=400)
 
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
-            return Response(
-                {'error': 'order not found'},
-                status=404
-            )
+            return Response({'error': 'Order not found'}, status=404)
 
-        # ✅ สร้าง intent_id
-        now = timezone.now().localtime()
-        intent_id = f"KT_{now:%Y%m%d%H%M%S}_{order.id}"
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            return Response({'error': 'invalid amount'}, status=400)
 
-        # ✅ ผูก intent กับ order
+        # 🔥 กันซ้ำแบบถาวร
+        now = timezone.now()
+        intent_id = f"KT_{now:%Y%m%d%H%M%S}_{uuid.uuid4().hex[:6]}"
+
         order.payment_intent_id = intent_id
         order.save(update_fields=['payment_intent_id'])
 
         simulator_url = (
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
-            "payment-simulator.html"
+            f"payment-simulator.html"
             f"?intent_id={intent_id}"
             f"&amount={amount:.2f}"
         )
