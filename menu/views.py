@@ -332,41 +332,52 @@ class CreatePaymentIntentAPIView(APIView):
 
     def post(self, request):
         order_id = request.data.get('order_id')
-        amount = request.data.get('amount')
 
-        if not order_id or not amount:
-            return Response({'error': 'order_id and amount are required'}, status=400)
+        if not order_id:
+            return Response(
+                {'error': 'order_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             order = Order.objects.get(id=order_id)
         except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=404)
+            return Response(
+                {'error': 'order not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        try:
-            amount = float(amount)
-            if amount <= 0:
-                raise ValueError
-        except ValueError:
-            return Response({'error': 'invalid amount'}, status=400)
-
-        # 🔥 กันซ้ำแบบถาวร
+        # ใช้เวลาไทยจริง
         now = timezone.localtime()
-        intent_id = f"KT_{now:%Y%m%d%H%M%S}_{uuid.uuid4().hex[:6]}"
 
+        intent_id = (
+            f"KT-{now:%Y%m%d}-{now:%H%M%S}-"
+            f"{uuid.uuid4().hex[:6].upper()}"
+        )
+
+        # bind intent_id กับ Order
         order.payment_intent_id = intent_id
-        order.save(update_fields=['payment_intent_id'])
+        order.payment_status = 'UNPAID'
+        order.status = 'AWAITING_PAYMENT'
+        order.save(update_fields=[
+            'payment_intent_id',
+            'payment_status',
+            'status'
+        ])
 
         simulator_url = (
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
-            f"payment-simulator.html"
+            "payment-simulator.html"
             f"?intent_id={intent_id}"
-            f"&amount={amount:.2f}"
+            f"&amount={order.total_price:.2f}"
         )
 
         return Response({
+            "order_id": order.id,
             "intent_id": intent_id,
+            "amount": f"{order.total_price:.2f}",
             "simulator_url": simulator_url
-        }, status=200)
+        }, status=status.HTTP_200_OK)
 
 # =======================================================
 #           PAYMENT WEBHOOKS
