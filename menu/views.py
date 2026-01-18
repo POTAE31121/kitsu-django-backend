@@ -22,7 +22,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import MenuItem, Order, OrderItem
 from .serializers import (
@@ -229,7 +229,7 @@ class AdminDashboardStatsAPIView(APIView):
 # =======================================================
 class FinalOrderSubmissionAPIView(APIView):
     permission_classes = [AllowAny]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
