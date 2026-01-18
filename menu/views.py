@@ -234,49 +234,89 @@ class FinalOrderSubmissionAPIView(APIView):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         serializer = FinalOrderSubmissionSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        validated_data = serializer.validated_data
-        
+        # 1. Parse items
         try:
-            items_data = json.loads(validated_data['items'])
-        except json.JSONDecodeError:
-            return Response({'error': 'Invalid items format.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # --- ที่เหลือคือ Logic การสร้าง Order ที่สมบูรณ์ ---
-        total_price = Decimal(0)
-        item_ids = [item['id'] for item in items_data]
-        menu_items_in_db = MenuItem.objects.filter(id__in=item_ids)
-        menu_items_map = {item.id: item for item in menu_items_in_db}
-
-        if len(menu_items_map) != len(item_ids):
-            return Response({'error': 'Some menu items were not found.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        order = Order.objects.create(
-            customer_name=validated_data['customer_name'],
-            customer_phone=validated_data['customer_phone'],
-            customer_address=validated_data['customer_address'],
-            payment_slip=validated_data['payment_slip'],
-            total_price=0 # Start with 0
-        )
-        
-        order_items_to_create = []
-        for item_data in items_data:
-            menu_item = menu_items_map.get(item_data['id'])
-            price = menu_item.price
-            quantity = item_data['quantity']
-            total_price += price * quantity
-            order_items_to_create.append(
-                OrderItem(order=order, menu_item_name=menu_item.name, quantity=quantity, price=price)
+            items_data = json.loads(data['items'])
+            if not isinstance(items_data, list) or not items_data:
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            return Response(
+                {'error': 'items must be a non-empty JSON array'},
+                status=status.HTTP_400_BAD_REQUEST
             )
 
-        OrderItem.objects.bulk_create(order_items_to_create)
+        # 2. Fetch & lock menu items
+        item_ids = [item.get('id') for item in items_data]
+        menu_items = (
+            MenuItem.objects
+            .select_for_update()
+            .filter(id__in=item_ids)
+        )
+        menu_map = {item.id: item for item in menu_items}
+
+        if len(menu_map) != len(item_ids):
+            return Response(
+                {'error': 'Some menu items were not found'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 3. Create order (explicit status)
+        order = Order.objects.create(
+            customer_name=data['customer_name'],
+            customer_phone=data['customer_phone'],
+            customer_address=data['customer_address'],
+            payment_slip=data['payment_slip'],
+            status='AWAITING_PAYMENT',
+            payment_status='UNPAID',
+            total_price=Decimal('0.00')
+        )
+
+        # 4. Create order items + calculate total
+        total_price = Decimal('0.00')
+        order_items = []
+
+        for item in items_data:
+            try:
+                menu_item = menu_map[item['id']]
+                quantity = int(item['quantity'])
+                if quantity <= 0:
+                    raise ValueError
+            except (KeyError, ValueError, TypeError):
+                raise transaction.TransactionManagementError(
+                    "Invalid item structure"
+                )
+
+            line_total = menu_item.price * quantity
+            total_price += line_total
+
+            order_items.append(
+                OrderItem(
+                    order=order,
+                    menu_item_name=menu_item.name,
+                    quantity=quantity,
+                    price=menu_item.price
+                )
+            )
+
+        OrderItem.objects.bulk_create(order_items)
+
+        # 5. Finalize order
         order.total_price = total_price
-        order.save()
-        
+        order.save(update_fields=['total_price'])
+
         send_telegram_notification(order)
-        return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+
+        return Response(
+            {
+                'message': 'Order created successfully',
+                'order_id': order.id,
+                'total_price': f"{total_price:.2f}"
+            },
+            status=status.HTTP_201_CREATED
+        )
     
 # =======================================================
 #               CREATE PAYMENT INTENT (FIXED)
