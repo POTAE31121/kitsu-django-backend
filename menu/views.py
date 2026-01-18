@@ -350,7 +350,7 @@ class CreatePaymentIntentAPIView(APIView):
             return Response({'error': 'invalid amount'}, status=400)
 
         # 🔥 กันซ้ำแบบถาวร
-        now = timezone.now()
+        now = timezone.localtime()
         intent_id = f"KT_{now:%Y%m%d%H%M%S}_{uuid.uuid4().hex[:6]}"
 
         order.payment_intent_id = intent_id
