@@ -310,7 +310,7 @@ class CreatePaymentIntentAPIView(APIView):
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
             f"payment-simulator.html"
             f"?intent_id={intent_id}"
-            f"&amount={amount}"
+            f"&amount={amount/ 100:.2f}"
         )
 
         return Response({
