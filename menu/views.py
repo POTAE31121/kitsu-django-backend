@@ -331,38 +331,54 @@ class CreatePaymentIntentAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        try:
-            amount = request.data.get('amount')
+        order_id = request.data.get('order_id')
+        amount = request.data.get('amount')
 
-            if amount is None:
-                return Response({'error': 'amount is required'}, status=400)
-
-            amount = float(amount)
-            if amount <= 0:
-                return Response({'error': 'invalid amount'}, status=400)
-
-            now = timezone.now()
-            intent_id = f"KT_{now:%Y%m%d%H%M%S}"
-
-            simulator_url = (
-                "https://potae31121.github.io/kitsu-cloud-kitchen/"
-                "payment-simulator.html"
-                f"?intent_id={intent_id}"
-                f"&amount={amount:.2f}"
+        if not order_id or not amount:
+            return Response(
+                {'error': 'order_id and amount are required'},
+                status=400
             )
 
-            return Response({
-                "intent_id": intent_id,
-                "simulator_url": simulator_url
-            }, status=200)
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            return Response(
+                {'error': 'invalid amount'},
+                status=400
+            )
 
-        except Exception as e:
-            # สำคัญมาก ช่วยคุณชีวิตจริง
-            return Response({
-                "error": "server_error",
-                "detail": str(e)
-            }, status=500)
-    
+        # 🔒 ดึง order
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response(
+                {'error': 'order not found'},
+                status=404
+            )
+
+        # 🔑 สร้าง intent_id
+        now = timezone.now().localtime()
+        intent_id = f"KT_{now:%Y%m%d%H%M%S}_{order.id}"
+
+        # ✅ ผูก intent กับ order
+        order.payment_intent_id = intent_id
+        order.save(update_fields=['payment_intent_id'])
+
+        simulator_url = (
+            "https://potae31121.github.io/kitsu-cloud-kitchen/"
+            "payment-simulator.html"
+            f"?intent_id={intent_id}"
+            f"&amount={amount:.2f}"
+        )
+
+        return Response({
+            "intent_id": intent_id,
+            "simulator_url": simulator_url
+        }, status=200)
+
 # =======================================================
 #           PAYMENT WEBHOOKS
 # =======================================================
