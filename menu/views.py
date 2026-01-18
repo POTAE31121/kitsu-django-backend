@@ -304,7 +304,8 @@ class CreatePaymentIntentAPIView(APIView):
             )
 
         # mock payment intent
-        intent_id = f"pi_{uuid.uuid4().hex}"
+        now = timezone.now().localtime()
+        intent_id = now.strftime("pi_%Y%m%d%H%M%S") + f"-{Order.id}"
 
         simulator_url = (
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
