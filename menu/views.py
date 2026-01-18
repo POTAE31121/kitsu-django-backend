@@ -6,6 +6,9 @@ import os
 import requests
 import json
 import uuid
+import hmac
+import hashlib
+
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -151,8 +154,14 @@ class OrderSlipUploadAPIView(generics.UpdateAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSlipUploadSerializer
     lookup_field = 'id'
-    permission_classes = [AllowAny]  # Allow any user to upload payment slips
+    permission_classes = [AllowAny]
     parser_classes = [MultiPartParser, FormParser]
+
+    def perform_update(self, serializer):
+        order = serializer.save()
+        order.status = 'AWAITING_PAYMENT'
+        order.payment_status = 'UNPAID'
+        order.save()
 
 # =======================================================
 #               ADMIN-FACING API VIEWS
@@ -276,63 +285,79 @@ class CreatePaymentIntentAPIView(APIView):
     permission_classes = [AllowAny]
 
     @transaction.atomic
-    def post(self, request, *args, **kwargs):
-        amount = request.data.get('amount')
-        if not amount:
-            return Response({'error': 'Amount is required.'}, status=400)
+    def post(self, request):
+        order_id = request.data.get('order_id')
+
+        if not order_id:
+            return Response({'error': 'order_id is required'}, status=400)
 
         try:
-            amount_decimal = Decimal(amount)
-            if amount_decimal <= 0:
-                raise ValueError
-        except:
-            return Response({'error': 'Invalid amount.'}, status=400)
+            order = Order.objects.select_for_update().get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=404)
 
-        # ❌ Stripe ยังไม่ใช้ → mock intent
-        payment_intent_id = f"pi_{uuid.uuid4().hex}"
+        # 🔒 กันจ่ายซ้ำ
+        if order.payment_status == 'PAID':
+            return Response({'error': 'Order already paid'}, status=400)
+
+        # mock payment intent
+        intent_id = f"pi_{uuid.uuid4().hex}"
+
+        order.payment_intent_id = intent_id
+        order.status = 'AWAITING_PAYMENT'
+        order.save()
 
         simulator_url = (
-            f"https://potae31121.github.io/kitsu-cloud-kitchen/"
+            "https://potae31121.github.io/kitsu-cloud-kitchen/"
             f"payment-simulator.html"
-            f"?intent_id={payment_intent_id}"
-            f"&amount={amount_decimal}"
+            f"?intent_id={intent_id}"
+            f"&amount={order.total_price}"
         )
 
         return Response({
             "simulator_url": simulator_url,
-        }, status=status.HTTP_200_OK)
-
+            "intent_id": intent_id
+        }, status=200)
+    
+@method_decorator(csrf_exempt, name='dispatch')
 class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request, *args, **kwargs):
-        print("WEBHOOK DATA:", request.data)  # <-- เพิ่มบรรทัดนี้
-        
-        intent_id = request.data.get('intent_id')
-        payment_status = request.data.get('status')
-        amount = request.data.get('amount')
+    def post(self, request):
+        try:
+            payload = json.loads(request.body)
+        except json.JSONDecodeError:
+            return Response({'error': 'Invalid JSON'}, status=400)
+
+        intent_id = payload.get('intent_id')
+        payment_status = payload.get('status')
 
         if not intent_id or not payment_status:
-            return Response(
-                {'error': 'Invalid webhook payload'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Invalid payload'}, status=400)
 
-        # 🔴 ตรงนี้ปกติจะ lookup Order จาก intent_id
-        # order = Order.objects.get(payment_intent_id=intent_id)
+        try:
+            order = Order.objects.select_for_update().get(
+                payment_intent_id=intent_id
+            )
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=404)
+
+        # 🔒 ยิงซ้ำไม่ได้
+        if order.payment_status == 'PAID':
+            return Response({'message': 'Already processed'}, status=200)
 
         if payment_status == 'success':
-            # order.status = 'PAID'
-            # order.save()
-            message = 'Payment confirmed'
-        else:
-            # order.status = 'FAILED'
-            # order.save()
-            message = 'Payment failed'
+            order.payment_status = 'PAID'
+            order.status = 'PREPARING'
+            order.paid_at = timezone.now()
+            order.save()
 
-        return Response({
-            'message': message,
-            'intent_id': intent_id,
-            'status': payment_status,
-            'amount': amount
-        }, status=status.HTTP_200_OK)
+            # ✅ แจ้งเตือนหลังชำระเงินจริง
+            send_telegram_notification(order)
+
+            return Response({'message': 'Payment confirmed'}, status=200)
+
+        else:
+            order.payment_status = 'FAILED'
+            order.save()
+            return Response({'message': 'Payment failed'}, status=200)
