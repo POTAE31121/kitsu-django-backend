@@ -306,22 +306,31 @@ class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        payload = request.data
-        # Verify the webhook signature (if using Stripe, for example)
-        # Handle the event (e.g., payment succeeded, payment failed)
         intent_id = request.data.get('intent_id')
-        event_type = request.data.get('event_type')
+        payment_status = request.data.get('status')
+        amount = request.data.get('amount')
 
-        try:
-            order = Order.objects.get(payment_intent_id=intent_id)
-            if event_type == 'payment.success':
-                order.status = 'PREPARING'
-                order.save()
-                send_telegram_notification(order)
-                return Response({'status': 'success'}, status=status.HTTP_200_OK)
-            else:
-                order.status = 'CANCELLED' # ถ้าจ่ายล้มเหลว
-                order.save()
-                return Response({'status': 'failed'}, status=status.HTTP_200_OK)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+        if not intent_id or not payment_status:
+            return Response(
+                {'error': 'Invalid webhook payload'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 🔴 ตรงนี้ปกติจะ lookup Order จาก intent_id
+        # order = Order.objects.get(payment_intent_id=intent_id)
+
+        if payment_status == 'success':
+            # order.status = 'PAID'
+            # order.save()
+            message = 'Payment confirmed'
+        else:
+            # order.status = 'FAILED'
+            # order.save()
+            message = 'Payment failed'
+
+        return Response({
+            'message': message,
+            'intent_id': intent_id,
+            'status': payment_status,
+            'amount': amount
+        }, status=status.HTTP_200_OK)
