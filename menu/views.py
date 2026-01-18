@@ -279,46 +279,48 @@ class FinalOrderSubmissionAPIView(APIView):
         return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
     
 # =======================================================
-#               CREATE PAYMENT INTENT
+#               CREATE PAYMENT INTENT (FIXED)
 # =======================================================
 class CreatePaymentIntentAPIView(APIView):
     permission_classes = [AllowAny]
 
-    @transaction.atomic
     def post(self, request):
-        order_id = request.data.get('order_id')
+        amount = request.data.get('amount')
 
-        if not order_id:
-            return Response({'error': 'order_id is required'}, status=400)
+        if not amount:
+            return Response(
+                {'error': 'amount is required'},
+                status=400
+            )
 
         try:
-            order = Order.objects.select_for_update().get(id=order_id)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=404)
-
-        # 🔒 กันจ่ายซ้ำ
-        if order.payment_status == 'PAID':
-            return Response({'error': 'Order already paid'}, status=400)
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError
+        except ValueError:
+            return Response(
+                {'error': 'invalid amount'},
+                status=400
+            )
 
         # mock payment intent
         intent_id = f"pi_{uuid.uuid4().hex}"
-
-        order.payment_intent_id = intent_id
-        order.status = 'AWAITING_PAYMENT'
-        order.save()
 
         simulator_url = (
             "https://potae31121.github.io/kitsu-cloud-kitchen/"
             f"payment-simulator.html"
             f"?intent_id={intent_id}"
-            f"&amount={order.total_price}"
+            f"&amount={amount}"
         )
 
         return Response({
-            "simulator_url": simulator_url,
-            "intent_id": intent_id
+            "intent_id": intent_id,
+            "simulator_url": simulator_url
         }, status=200)
     
+# =======================================================
+#           PAYMENT WEBHOOKS
+# =======================================================
 @method_decorator(csrf_exempt, name='dispatch')
 class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
