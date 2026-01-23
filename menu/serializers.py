@@ -13,7 +13,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
     def get_image_url(self, obj):
         # ถ้าเมนูชิ้นนั้นมีรูปภาพ (obj.image)
         if obj.image:
-            return obj.image.url
+            return obj.image.url(secure=True)
         return None
 # ... ต่อท้ายคลาส MenuItemSerializer ...
 
