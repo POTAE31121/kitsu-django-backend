@@ -19,7 +19,7 @@ class MenuItemSerializer(serializers.ModelSerializer):
         # ถ้าเมนูชิ้นนั้นมีรูปภาพ (obj.image)
         if obj.image and hasattr(obj.image, 'url'):
             # ให้ return ค่า URL ฉบับเต็มออกมา
-            return obj.image.url
+            return obj.image.url("http://", "https://")
         # ถ้าไม่มีรูปภาพ ก็ให้ return ค่าว่าง (None)
         return None
     
