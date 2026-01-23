@@ -17,15 +17,11 @@ class MenuItemSerializer(serializers.ModelSerializer):
     # นี่คือฟังก์ชันที่จะทำงานเพื่อสร้างค่าให้กับ 'image_url'
     def get_image_url(self, obj):
         # ถ้าเมนูชิ้นนั้นมีรูปภาพ (obj.image)
-        try:
-            if obj.image and hasattr(obj.image, 'url'):
-            # ให้ return ค่า URL ฉบับเต็มออกมา
-                return obj.image.url("http://", "https://")
-            # ถ้าไม่มีรูปภาพ ก็ให้ return ค่าว่าง (None)
-        except:
-            return None
+        if obj.image and hasattr(obj.image, 'url'):
+        # ให้ return ค่า URL ฉบับเต็มออกมา
+            return obj.image.url("http://", "https://")
+        # ถ้าไม่มีรูปภาพ ก็ให้ return ค่าว่าง (None)
         return None
-    
 # ... ต่อท้ายคลาส MenuItemSerializer ...
 
 class OrderItemSerializer(serializers.Serializer):
