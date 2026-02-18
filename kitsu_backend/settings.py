@@ -16,10 +16,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # CORE SETTINGS
 # ==============================================================================
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key-for-local-dev')
+SECRET_KEY = os.environ.get('SECRET_KEY',)
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY is not set in environment variables.")
 DEBUG = 'RENDER' not in os.environ
 
-ALLOWED_HOSTS = []
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
@@ -130,13 +133,16 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "https://potae31121.github.io",
-    "https://kitsu-django-backend.onrender.com",
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://127.0.0.1:5500",
-]
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://potae31121.github.io",
+    ]
 
 # (Optional but good practice) To allow POST, PUT, etc.
 # CORS_ALLOW_METHODS = [
