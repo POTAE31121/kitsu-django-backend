@@ -322,54 +322,6 @@ class CreatePaymentIntentAPIView(APIView):
         }, status=status.HTTP_200_OK)
 
 # =======================================================
-#           PAYMENT WEBHOOKS
-# =======================================================
-@method_decorator(csrf_exempt, name='dispatch')
-class PaymentWebhookAPIView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        # TODO: In production, verify webhook signature
-        # using HMAC-SHA256 with a shared secret before processing
-        try:
-            payload = json.loads(request.body)
-        except json.JSONDecodeError:
-            return Response({'error': 'Invalid JSON'}, status=400)
-
-        intent_id = payload.get('intent_id')
-        payment_status = payload.get('status')
-
-        if not intent_id or not payment_status:
-            return Response({'error': 'Invalid payload'}, status=400)
-
-        try:
-            order = Order.objects.select_for_update().get(
-                payment_intent_id=intent_id
-            )
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found'}, status=404)
-
-        # 🔒 ยิงซ้ำไม่ได้
-        if order.payment_status == 'PAID':
-            return Response({'message': 'Already processed'}, status=200)
-
-        if payment_status == 'success':
-            order.payment_status = 'PAID'
-            order.status = 'PREPARING'
-            order.paid_at = timezone.now()
-            order.save()
-
-            # ✅ แจ้งเตือนหลังชำระเงินจริง
-            send_telegram_notification(order)
-
-            return Response({'message': 'Payment confirmed'}, status=200)
-
-        else:
-            order.payment_status = 'FAILED'
-            order.save()
-            return Response({'message': 'Payment failed'}, status=200)
-
-# =======================================================
 #           PAYMENT STATUS (POLLING)
 # =======================================================
 

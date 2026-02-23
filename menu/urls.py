@@ -23,9 +23,10 @@ urlpatterns = [
 
     # Public
     path('items/', MenuItemListAPIView.as_view()),
+    path('orders/submit-final/', FinalOrderSubmissionAPIView.as_view()),
     path('orders/<int:id>/', OrderStatusAPIView.as_view()),
     path('orders/<int:id>/upload-slip/', OrderSlipUploadAPIView.as_view()),
-    path('orders/submit-final/', FinalOrderSubmissionAPIView.as_view()),
+    
 
     # Payment
     path('payment/create-intent/', CreatePaymentIntentAPIView.as_view()),
