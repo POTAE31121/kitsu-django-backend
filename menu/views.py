@@ -25,10 +25,8 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 from .models import MenuItem, Order, OrderItem
-from .services import create_order
 from .serializers import (
     MenuItemSerializer,
-    OrderSerializer,
     OrderStatusSerializer,
     AdminOrderSerializer,
     OrderSlipUploadSerializer,
@@ -85,34 +83,6 @@ class MenuItemListAPIView(generics.ListAPIView):
     queryset = MenuItem.objects.filter(is_available=True)
     serializer_class = MenuItemSerializer
     permission_classes = [AllowAny] # No authentication required for menu items
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class CreateOrderAPIView(APIView):
-    permission_classes = [AllowAny]  # No authentication required for creating orders
-    @transaction.atomic
-    def post(self, request, *args, **kwargs):
-        serializer = OrderSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        validated_data = serializer.validated_data
-        items_data = validated_data.pop('items')
-
-        if not items_data:
-            return Response({'error': 'Order must contain at least one item.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Efficiently fetch all menu items at once
-        try:
-            order = create_order(validated_data, items_data)
-        except ValueError as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Send notification AFTER the order is successfully saved
-        send_telegram_notification(order)
-
-        return Response({'message': 'Order created successfully!', 'order_id': order.id}, status=status.HTTP_201_CREATED)
-
 
 class OrderStatusAPIView(generics.RetrieveAPIView):
     queryset = Order.objects.all()
@@ -271,6 +241,7 @@ class FinalOrderSubmissionAPIView(APIView):
             order_items.append(
                 OrderItem(
                     order=order,
+                    menu_item=menu_item,
                     menu_item_name=menu_item.name,
                     quantity=quantity,
                     price=menu_item.price
@@ -358,6 +329,8 @@ class PaymentWebhookAPIView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
+        # TODO: In production, verify webhook signature
+        # using HMAC-SHA256 with a shared secret before processing
         try:
             payload = json.loads(request.body)
         except json.JSONDecodeError:
