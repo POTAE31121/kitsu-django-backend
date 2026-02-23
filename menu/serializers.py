@@ -35,7 +35,7 @@ class OrderStatusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'status', 'created_at', 'total_price', 'items']
+        fields = ['id', 'status', 'payment_status', 'created_at', 'total_price', 'items']
     
     def get_items(self, obj):
         # ดึงข้อมูล OrderItem ทั้งหมดที่เกี่ยวข้องกับ Order นี้
