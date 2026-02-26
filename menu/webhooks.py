@@ -29,14 +29,9 @@ class SimulatorWebhookAPIView(APIView):
             payload = json.loads(request.body)
         except json.JSONDecodeError:
             return Response({'error': 'Invalid JSON'}, status=400)
-        
-        print("DEBUG.PAYLOAD:", payload)
 
         intent_id = payload.get('intent_id')
         payment_status = payload.get('status')
-
-        print("DEBUG.INTENT_ID:", intent_id)
-        print("DEBUG.PAYMENT_STATUS:", payment_status)
 
         if not intent_id or not payment_status:
             return Response({'error': 'Invalid payload'}, status=400)
@@ -45,9 +40,7 @@ class SimulatorWebhookAPIView(APIView):
             order = Order.objects.select_for_update().get(
                 payment_intent_id=intent_id
             )
-            print("DEBUG order found:", order.id, order.payment_status)
         except Order.DoesNotExist:
-            print("DEBUG order not found for intent_id:", intent_id)
             return Response({'error': 'Order not found'}, status=404)
 
         if order.payment_status == 'PAID':
@@ -58,7 +51,7 @@ class SimulatorWebhookAPIView(APIView):
             order.status = 'PREPARING'
             order.paid_at = timezone.now()
             order.save()
-            print("DEBUG order saved successfully")
+
             send_telegram_notification(order)
             return Response({'message': 'Payment confirmed'}, status=200)
 
