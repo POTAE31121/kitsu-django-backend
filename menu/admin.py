@@ -27,4 +27,7 @@ class OrderAdmin(admin.ModelAdmin):
         return "No Slip"
     payment_slip_thumbnail.short_description = 'Payment Slip'
 
-admin.site.register(MenuItem)
+@admin.register(MenuItem)
+class MenuItemAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price', 'is_available')
+    list_editable = ('is_available',)

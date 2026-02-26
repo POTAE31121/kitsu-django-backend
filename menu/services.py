@@ -27,6 +27,7 @@ def create_order(validated_data, items_data):
         order_items_to_create.append(
             OrderItem(
                 order=order,
+                menu_item=menu_item,
                 menu_item_name=menu_item.name,
                 quantity=quantity,
                 price=price
