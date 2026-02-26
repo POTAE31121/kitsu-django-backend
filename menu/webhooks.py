@@ -4,6 +4,7 @@ import json
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.db import transaction
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -22,6 +23,7 @@ from .views import send_telegram_notification
 class SimulatorWebhookAPIView(APIView):
     permission_classes = [AllowAny]
 
+    @transaction.atomic
     def post(self, request):
         try:
             payload = json.loads(request.body)
