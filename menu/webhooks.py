@@ -43,7 +43,9 @@ class SimulatorWebhookAPIView(APIView):
             order = Order.objects.select_for_update().get(
                 payment_intent_id=intent_id
             )
+            print("DEBUG order found:", order.id, order.payment_status)
         except Order.DoesNotExist:
+            print("DEBUG order not found for intent_id:", intent_id)
             return Response({'error': 'Order not found'}, status=404)
 
         if order.payment_status == 'PAID':
@@ -54,7 +56,7 @@ class SimulatorWebhookAPIView(APIView):
             order.status = 'PREPARING'
             order.paid_at = timezone.now()
             order.save()
-
+            print("DEBUG order saved successfully")
             send_telegram_notification(order)
             return Response({'message': 'Payment confirmed'}, status=200)
 
