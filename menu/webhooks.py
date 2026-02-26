@@ -27,9 +27,14 @@ class SimulatorWebhookAPIView(APIView):
             payload = json.loads(request.body)
         except json.JSONDecodeError:
             return Response({'error': 'Invalid JSON'}, status=400)
+        
+        print("DEBUG.PAYLOAD:", payload)
 
         intent_id = payload.get('intent_id')
         payment_status = payload.get('status')
+
+        print("DEBUG.INTENT_ID:", intent_id)
+        print("DEBUG.PAYMENT_STATUS:", payment_status)
 
         if not intent_id or not payment_status:
             return Response({'error': 'Invalid payload'}, status=400)
