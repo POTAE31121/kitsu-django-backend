@@ -143,15 +143,14 @@ else:
         "https://potae31121.github.io",
     ]
 
-# (Optional but good practice) To allow POST, PUT, etc.
-# CORS_ALLOW_METHODS = [
-#     "DELETE",
-#     "GET",
-#     "OPTIONS",
-#     "PATCH",
-#     "POST",
-#     "PUT",
-# ]
+CORS_ALLOW_METHODS = [
+     "DELETE",
+     "GET",
+     "OPTIONS",
+     "PATCH",
+     "POST",
+     "PUT",
+ ]
 
 # (Optional but good practice) To allow headers like Content-Type
 # CORS_ALLOW_HEADERS = [
