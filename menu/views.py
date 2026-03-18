@@ -3,6 +3,7 @@
 # =======================================================
 
 import os
+from django.shortcuts import get_object_or_404
 import requests
 import json
 import uuid
@@ -116,23 +117,75 @@ class AdminOrderListView(generics.ListAPIView):
 
 class AdminUpdateOrderStatusView(APIView):
     permission_classes = [IsAdminUser]
+
+    VALID_TRANSITIONS = {
+        'AWAITING_PAYMENT': ['AWAITING_PAYMENT', 'CANCELED'],
+        'PAID': ['PAID', 'CANCELED'],
+        'AWAITING_PREPARATION': ['AWAITING_PREPARATION', 'CANCELED'],
+        'PREPARING': ['PREPARING', 'CANCELED'],
+        'READY_FOR_DELIVERY': ['READY_FOR_DELIVERY', 'CANCELED'],
+        'OUT_FOR_DELIVERY': ['OUT_FOR_DELIVERY', 'CANCELED'],
+        'COMPLETED': ['COMPLETED'],
+        'CANCELED': ['CANCELED'],
+    }
     def patch(self, request, id, *args, **kwargs):
-        try:
-            order = Order.objects.get(id=id)
+            order = get_object_or_404(Order, id=id)
             new_status = request.data.get('status')
-            
-            valid_statuses = [choice[0] for choice in Order.STATUS_CHOICES]
-            if new_status not in valid_statuses:
-                return Response({'error': 'Invalid status provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            if not new_status:
+                return Response(
+                    {'error': 'status is required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            allowed = self.VALID_TRANSITIONS.get(order.status, [])
+
+            if new_status not in allowed:
+                return Response(
+                    {
+                        'error': f"Cannot transition from '{order.status}' to '{new_status}'",
+                        'allowed': allowed
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             order.status = new_status
-            order.save()
-            return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK)
-        except Order.DoesNotExist:
-            return Response({'error': 'Order not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
+            order.save(update_fields=['status'])
 
-# --- ⭐️ API View ใหม่สำหรับข้อมูลสรุปบน Dashboard (เวอร์ชันที่ถูกต้อง) ⭐️ ---
+            return Response(
+                AdminOrderSerializer(order).data,
+                status=status.HTTP_200_OK
+            )
+    
+# =======================================================
+#               Admin Order Allowed Transitions View
+# =======================================================
+class AdminAllowedStatusTransitionsView(APIView):
+    permission_classes = [IsAdminUser]
+
+    VALID_TRANSITIONS = {
+        'AWAITING_PAYMENT': ['AWAITING_PAYMENT', 'CANCELED'],
+        'PAID': ['PAID', 'CANCELED'],
+        'AWAITING_PREPARATION': ['AWAITING_PREPARATION', 'CANCELED'],
+        'PREPARING': ['PREPARING', 'CANCELED'],
+        'READY_FOR_DELIVERY': ['READY_FOR_DELIVERY', 'CANCELED'],
+        'OUT_FOR_DELIVERY': ['OUT_FOR_DELIVERY', 'CANCELED'],
+        'COMPLETED': ['COMPLETED'],
+        'CANCELED': ['CANCELED'],
+    }
+
+    def get(self, request, id, *args, **kwargs):
+        order = get_object_or_404(Order, id=id)
+        allowed = self.VALID_TRANSITIONS.get(order.status, [])
+        return Response({
+            'order_id': order.id,
+            'current_status': order.status,
+            'allowed_transitions': allowed
+        })
+
+# =======================================================
+#               ADMIN DASHBOARD STATS API VIEW (FIXED)
+# =======================================================
 class AdminDashboardStatsAPIView(APIView):
     permission_classes = [IsAdminUser]
 
