@@ -164,14 +164,14 @@ class AdminAllowedStatusTransitionsView(APIView):
     permission_classes = [IsAdminUser]
 
     VALID_TRANSITIONS = {
-        'AWAITING_PAYMENT': ['AWAITING_PAYMENT', 'CANCELED'],
-        'PAID': ['PAID', 'CANCELED'],
-        'AWAITING_PREPARATION': ['AWAITING_PREPARATION', 'CANCELED'],
-        'PREPARING': ['PREPARING', 'CANCELED'],
-        'READY_FOR_DELIVERY': ['READY_FOR_DELIVERY', 'CANCELED'],
-        'OUT_FOR_DELIVERY': ['OUT_FOR_DELIVERY', 'CANCELED'],
-        'COMPLETED': ['COMPLETED'],
-        'CANCELED': ['CANCELED'],
+        'AWAITING_PAYMENT': ['PAID', 'CANCELED'],
+        'PAID': ['AWAITING_PREPARATION', 'CANCELED'],
+        'AWAITING_PREPARATION': ['PREPARING', 'CANCELED'],
+        'PREPARING': ['READY_FOR_DELIVERY', 'CANCELED'],
+        'READY_FOR_DELIVERY': ['OUT_FOR_DELIVERY', 'CANCELED'],
+        'OUT_FOR_DELIVERY': ['COMPLETED', 'CANCELED'],
+        'COMPLETED': [],
+        'CANCELED': [],
     }
 
     def get(self, request, id, *args, **kwargs):
