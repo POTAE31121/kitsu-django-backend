@@ -30,6 +30,7 @@ from .serializers import (
     MenuItemSerializer,
     OrderStatusSerializer,
     AdminOrderSerializer,
+    AdminOrderAllowedTransitionsViewSerializer,
     OrderSlipUploadSerializer,
     FinalOrderSubmissionSerializer,
 )
