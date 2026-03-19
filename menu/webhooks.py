@@ -12,7 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework import status
 
 from .models import Order
-from .views import send_telegram_notification
+from .views import get_customer_message, send_customer_telegram_notification, send_telegram_notification
 
 
 # =======================================================
@@ -53,6 +53,10 @@ class SimulatorWebhookAPIView(APIView):
             order.save()
 
             send_telegram_notification(order)
+            # เพิ่มแจ้งลูกค้า
+            from .views import send_customer_telegram_notification, get_customer_message
+            msg = get_customer_message(order, 'payment_success')
+            send_customer_telegram_notification(order, msg)
             return Response({'message': 'Payment confirmed'}, status=200)
 
         order.payment_status = 'FAILED'

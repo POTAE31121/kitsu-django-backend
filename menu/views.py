@@ -214,6 +214,7 @@ class FinalOrderSubmissionAPIView(APIView):
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
             customer_address=data['customer_address'],
+            customer_telegram_id=data.get('customer_telegram_id'),  # ← FIX เพิ่ม Telegram ID
             payment_slip=data.get('payment_slip'),  # ← FIX สำคัญ
             status='AWAITING_PAYMENT',
             payment_status='UNPAID',
@@ -255,7 +256,12 @@ class FinalOrderSubmissionAPIView(APIView):
         order.save(update_fields=['total_price'])
 
         # 7. Notify AFTER commit (FIX: ไม่ rollback เพราะ Telegram)
-        transaction.on_commit(lambda: send_telegram_notification(order))
+        def notify_after_commit():
+            send_telegram_notification(order)  # แจ้ง admin
+            msg = get_customer_message(order, 'order_created')
+            send_customer_telegram_notification(order, msg)  # แจ้งลูกค้า
+
+        transaction.on_commit(notify_after_commit)
 
         return Response(
             {
@@ -265,7 +271,67 @@ class FinalOrderSubmissionAPIView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
-    
+
+def send_customer_telegram_notification(order,message):
+    bot_token = os.environ.get('CUSTOMER_TELEGRAM_BOT_TOKEN')
+    chat_id = order.customer_telegram_chat_id
+
+    if not bot_token:
+        print("WARNING: CUSTOMER_TELEGRAM_BOT_TOKEN not found.")
+        return
+
+    if not chat_id:
+        print(f"WARNING: No Telegram Chat ID for Order {order.id}. Skipping.")
+        return
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+
+    try:
+        response = requests.post(url, json=payload, timeout=5)
+        response.raise_for_status()
+        print(f"Customer Telegram notification sent for Order {order.id}")
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Could not send customer notification: {e}")
+        
+def get_customer_message(order, event):
+    base = f"🍱 <b>Kitsu Cloud Kitchen</b>\nOrder #{order.id}\n\n"
+
+    messages = {
+        'order_created': (
+            f"{base}"
+            f"✅ คำสั่งซื้อของคุณถูกสร้างแล้ว!\n\n"
+            f"📋 รายการ:\n"
+            + "".join([f"- {item.menu_item_name} x{item.quantity}\n" for item in order.items.all()])
+            + f"\n💰 ยอดรวม: ฿{order.total_price:.2f}\n\n"
+            f"กรุณาชำระเงินเพื่อดำเนินการต่อครับ"
+        ),
+        'payment_success': (
+            f"{base}"
+            f"💳 ชำระเงินสำเร็จ!\n\n"
+            f"💰 ยอด: ฿{order.total_price:.2f}\n"
+            f"🍳 กำลังเตรียมอาหารให้คุณครับ"
+        ),
+        'delivering': (
+            f"{base}"
+            f"🛵 กำลังจัดส่งแล้ว!\n\n"
+            f"📍 ที่อยู่: {order.customer_address}\n\n"
+            f"รอรับของได้เลยครับ 😊"
+        ),
+        'completed': (
+            f"{base}"
+            f"✅ จัดส่งสำเร็จ!\n\n"
+            f"ขอบคุณที่ใช้บริการ Kitsu Cloud Kitchen นะครับ 🙏\n"
+            f"หวังว่าจะได้พบกันใหม่ครับ"
+        ),
+    }
+
+    return messages.get(event, '')
+
 # =======================================================
 #               CREATE PAYMENT INTENT (FIXED)
 # =======================================================
