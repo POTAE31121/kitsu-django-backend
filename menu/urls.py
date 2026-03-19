@@ -10,7 +10,6 @@ from .views import (
     FinalOrderSubmissionAPIView,
     CreatePaymentIntentAPIView,
     PaymentStatusAPIView,
-    AdminAllowedStatusTransitionsView,
 )
 from .webhooks import (
     SimulatorWebhookAPIView,
@@ -43,5 +42,4 @@ urlpatterns = [
     path('admin/orders/', AdminOrderListView.as_view()),
     path('admin/orders/<int:id>/update-status/', AdminUpdateOrderStatusView.as_view()),
     path('admin/stats/', AdminDashboardStatsAPIView.as_view()),
-    path('admin/orders/<int:id>/transitions/', AdminAllowedStatusTransitionsView.as_view()),
 ]
