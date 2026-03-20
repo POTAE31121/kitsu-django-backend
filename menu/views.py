@@ -219,7 +219,7 @@ class FinalOrderSubmissionAPIView(APIView):
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
             customer_address=data['customer_address'],
-            customer_telegram_chat_id=data.get('customer_telegram_chat_id'),  # ← FIX เพิ่ม Telegram ID
+            customer_telegram_id=data.get('customer_telegram_chat_id'),  # ← FIX เพิ่ม Telegram ID
             payment_slip=data.get('payment_slip'),  # ← FIX สำคัญ
             status='AWAITING_PAYMENT',
             payment_status='UNPAID',
@@ -289,7 +289,7 @@ class FinalOrderSubmissionAPIView(APIView):
 
 def send_customer_telegram_notification(order,message):
     bot_token = os.environ.get('CUSTOMER_TELEGRAM_BOT_TOKEN')
-    chat_id = order.customer_telegram_chat_id
+    chat_id = order.customer_telegram_id
 
     if not bot_token:
         print("WARNING: CUSTOMER_TELEGRAM_BOT_TOKEN not found.")
