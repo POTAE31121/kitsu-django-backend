@@ -211,6 +211,10 @@ class FinalOrderSubmissionAPIView(APIView):
 
         # 4. Create order (FIX: payment_slip optional)
         try:
+            # เพิ่มก่อน Order.objects.create(...)
+            from django.db import connection
+            columns = [col.name for col in connection.introspection.get_table_description(connection.cursor(), 'menu_order')]
+            print(f"DEBUG DB COLUMNS: {columns}")
             order = Order.objects.create(
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
