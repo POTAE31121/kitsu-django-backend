@@ -210,7 +210,8 @@ class FinalOrderSubmissionAPIView(APIView):
             )
 
         # 4. Create order (FIX: payment_slip optional)
-        order = Order.objects.create(
+        try:
+            order = Order.objects.create(
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
             customer_address=data['customer_address'],
@@ -220,7 +221,10 @@ class FinalOrderSubmissionAPIView(APIView):
             payment_status='UNPAID',
             total_price=Decimal('0.00')
         )
-
+            print(f"DEBUG: Order created successfully id={order.id}")
+        except Exception as e:
+            print(f"DEBUG: Order creation failed: {e}")
+            raise
         # 5. Create order items + calculate total
         total_price = Decimal('0.00')
         order_items = []
