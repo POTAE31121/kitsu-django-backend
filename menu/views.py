@@ -257,9 +257,16 @@ class FinalOrderSubmissionAPIView(APIView):
 
         # 7. Notify AFTER commit (FIX: ไม่ rollback เพราะ Telegram)
         def notify_after_commit():
-            send_telegram_notification(order)  # แจ้ง admin
-            msg = get_customer_message(order, 'order_created')
-            send_customer_telegram_notification(order, msg)  # แจ้งลูกค้า
+            try:
+                send_telegram_notification(order)  # แจ้ง admin
+            except Exception as e:
+                print(f"ERROR: admin notification failed: {e}")
+    
+            try:
+                msg = get_customer_message(order, 'order_created')
+                send_customer_telegram_notification(order, msg)  # แจ้งลูกค้า
+            except Exception as e:
+                print(f"ERROR: customer notification failed: {e}")
 
         transaction.on_commit(notify_after_commit)
 
