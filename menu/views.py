@@ -346,6 +346,12 @@ def get_customer_message(order, event):
             f"ขอบคุณที่ใช้บริการ Kitsu Cloud Kitchen นะครับ 🙏\n"
             f"หวังว่าจะได้พบกันใหม่ครับ"
         ),
+        'cancelled': (
+            f"{base}"
+            f"❌ คำสั่งซื้อของคุณถูกยกเลิกแล้ว\n\n"
+            f"หากมีข้อสงสัยกรุณาติดต่อ\n"
+            f"📧 kitsucloudkitchen@gmail.com"
+        ),
     }
 
     return messages.get(event, '')
