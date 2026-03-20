@@ -125,6 +125,17 @@ class AdminUpdateOrderStatusView(APIView):
             if new_status not in valid_statuses:
                 return Response({'error': 'Invalid status provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
+            if new_status == 'DELIVERING':
+                msg = get_customer_message(order, 'delivering')
+                send_customer_telegram_notification(order, msg)
+            elif new_status == 'COMPLETED':
+                msg = get_customer_message(order, 'completed')
+                send_customer_telegram_notification(order, msg)
+            elif new_status == 'CANCELLED':
+                # อาจจะส่งข้อความแจ้งลูกค้าด้วยก็ได้ (ถ้าต้องการ)
+                msg = get_customer_message(order, 'cancelled')
+                send_customer_telegram_notification(order, msg)
+
             order.status = new_status
             order.save()
             return Response(AdminOrderSerializer(order).data, status=status.HTTP_200_OK)
@@ -210,12 +221,7 @@ class FinalOrderSubmissionAPIView(APIView):
             )
 
         # 4. Create order (FIX: payment_slip optional)
-        try:
-            # เพิ่มก่อน Order.objects.create(...)
-            from django.db import connection
-            columns = [col.name for col in connection.introspection.get_table_description(connection.cursor(), 'menu_order')]
-            print(f"DEBUG DB COLUMNS: {columns}")
-            order = Order.objects.create(
+        order = Order.objects.create(
             customer_name=data['customer_name'],
             customer_phone=data['customer_phone'],
             customer_address=data['customer_address'],
@@ -225,10 +231,7 @@ class FinalOrderSubmissionAPIView(APIView):
             payment_status='UNPAID',
             total_price=Decimal('0.00')
         )
-            print(f"DEBUG: Order created successfully id={order.id}")
-        except Exception as e:
-            print(f"DEBUG: Order creation failed: {e}")
-            raise
+
         # 5. Create order items + calculate total
         total_price = Decimal('0.00')
         order_items = []
