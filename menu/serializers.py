@@ -93,7 +93,7 @@ class FinalOrderSubmissionSerializer(serializers.Serializer):
     customer_name = serializers.CharField(max_length=100)
     customer_phone = serializers.CharField(max_length=20)
     customer_address = serializers.CharField()
-    customer_telegram_id = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    customer_telegram_chat_id = serializers.CharField(max_length=50, required=False, allow_blank=True)
     items = serializers.CharField() # เราจะรับ items เป็น JSON string
     payment_slip = serializers.ImageField(
         required=False,
