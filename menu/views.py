@@ -289,7 +289,7 @@ class FinalOrderSubmissionAPIView(APIView):
 
 def send_customer_telegram_notification(order,message):
     bot_token = os.environ.get('CUSTOMER_TELEGRAM_BOT_TOKEN')
-    chat_id = order.customer_telegram_id
+    chat_id = order.customer_telegram_chat_id
 
     if not bot_token:
         print("WARNING: CUSTOMER_TELEGRAM_BOT_TOKEN not found.")
