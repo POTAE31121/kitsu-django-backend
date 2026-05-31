@@ -17,6 +17,11 @@ class MenuItemSerializer(serializers.ModelSerializer):
             url = obj.image.url
             return url.replace('http://', 'https://')
         return None
+    
+    def get_category_name(self, obj):
+        if obj.category:
+            return obj.category.name
+        return None
 # ... ต่อท้ายคลาส MenuItemSerializer ...
 
 class OrderItemSerializer(serializers.Serializer):
