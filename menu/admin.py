@@ -1,6 +1,6 @@
 # menu/admin.py (Correct Final Version)
 from django.contrib import admin
-from .models import MenuItem, Order, OrderItem
+from .models import Category, MenuItem, Order, OrderItem, Category
 from django.utils.html import format_html
 
 class OrderItemInline(admin.TabularInline):
@@ -29,5 +29,10 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(MenuItem)
 class MenuItemAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'is_available')
+    list_display = ('name', 'price', 'is_available', 'category')
     list_editable = ('is_available',)
+    list_filter = ('category',)
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ('name',)

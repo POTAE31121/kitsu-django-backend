@@ -5,10 +5,11 @@ from .models import MenuItem, Order, OrderItem
 
 class MenuItemSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
+    category_name = serializers.SerializerMethodField()
 
     class Meta:
         model = MenuItem
-        fields = ['id', 'name', 'description', 'price', 'image_url', 'is_available']
+        fields = ['id', 'name', 'description', 'price', 'image_url', 'is_available', 'category_name']
 
     def get_image_url(self, obj):
         # ถ้าเมนูชิ้นนั้นมีรูปภาพ (obj.image)
