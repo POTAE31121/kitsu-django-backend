@@ -140,7 +140,7 @@ if DEBUG:
     ]
 else:
     CORS_ALLOWED_ORIGINS = [
-        "https://potae31121.github.io",
+        "https://potaelab.github.io",
     ]
 
 CORS_ALLOW_METHODS = [
